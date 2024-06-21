@@ -9,6 +9,9 @@ impl OsRandomKeyGenerator{
         OsRng.fill_bytes(&mut key);
         key
     }
+    pub fn generate_hex_key(size: usize) -> String {
+        encode(OsRandomKeyGenerator::generate_key(size))
+    }
 }
 
 #[cfg(test)]
