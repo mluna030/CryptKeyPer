@@ -11,7 +11,6 @@ may not work for everyone!! use at your own discretion!!
 - [Installation](#installation)
 - [Usage](#usage)
 - [Features](#features)
-- [Contributing](#contributing)
 - [License](#license)
 - [Contact](#contact)
 
@@ -57,6 +56,9 @@ fn main() {
 - Deterministic Random Bit Generation (HMAC_DRBG)
 - Mnemonic Seed Handling
 - eXtended Merkle Signature Scheme (XMSS)
+
+## License
+- Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International
 
 ## Contact
 
