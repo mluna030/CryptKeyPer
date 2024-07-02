@@ -1,26 +1,28 @@
 use rand::rngs::OsRng;
 use rand::RngCore;
+use base64::encode;
 
 pub struct OsRandomKeyGenerator;
 
-impl OsRandomKeyGenerator{
-    pub fn GenerateKey(size: usize) -> Vect<u8> {
+impl OsRandomKeyGenerator {
+    pub fn generate_key(size: usize) -> Vec<u8> {
         let mut key = vec![0u8; size];
         OsRng.fill_bytes(&mut key);
         key
     }
+
     pub fn generate_hex_key(size: usize) -> String {
-        encode(OsRandomKeyGenerator::generate_key(size))
+        encode(&OsRandomKeyGenerator::generate_key(size))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    user super::*;
+    use super::*;
 
     #[test]
-    fn TestGenerateKey(){
-        let key = OsRandomKeyGenerator::GenerateKey(32);
+    fn test_generate_key() {
+        let key = OsRandomKeyGenerator::generate_key(32);
         assert_eq!(key.len(), 32);
     }
 }

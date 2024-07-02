@@ -1,4 +1,4 @@
-use hmac::{Hmac, Mac, NewMac};
+use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -6,6 +6,7 @@ type HmacSha256 = Hmac<Sha256>;
 pub struct HmacDrbg {
     v: Vec<u8>,
     k: Vec<u8>,
+    reseed_counter: u64,
 }
 
 impl HmacDrbg {
@@ -29,7 +30,7 @@ impl HmacDrbg {
     }
 
     pub fn generate(&mut self, num_bytes: usize) -> Vec<u8> {
-        if (num_bytes * 8) > 7500{
+        if (num_bytes * 8) > 7500 {
             panic!("Generate cannot generate more than 7500 bits in a single call")
         }
         let mut result = Vec::new();
@@ -39,7 +40,7 @@ impl HmacDrbg {
             self.v = hmac.finalize().into_bytes().to_vec();
             result.extend_from_slice(&self.v);
         }
-        self.update(None)
+        self.update(None);
         self.reseed_counter += 1;
 
         result.truncate(num_bytes);
@@ -47,44 +48,34 @@ impl HmacDrbg {
     }
 
     pub fn reseed(&mut self, entropy: &[u8]) {
-        //let mut hmac = HmacSha256::new_from_slice(&self.k).unwrap();
-        //hmac.update(&self.v);
-        //hmac.update(&[0u8]);
-        //hmac.update(entropy);
-        //self.k = hmac.finalize().into_bytes().to_vec();
-
-        //let mut hmac = HmacSha256::new_from_slice(&self.k).unwrap();
-        //hmac.update(&self.v);
-        //self.v = hmac.finalize().into_bytes().to_vec();
-
         self.update(Some(entropy));
         self.reseed_counter = 1;
     }
-}
 
-fn update(&mut self, seed_material: Option<&[u8]>){
-    let mut hmac =HmacSha256::new_from_slice(&Self.k).unwrap();
-    hmac.update(&self.v);
-    hmac.update(&[0u8]);
-    if let Some(seed) = seed_material {
-        hmac.update(seed);
-    }
-    self.k = hmac.finalize().into_bytes().to_vec();
-
-    let mut hmac = HmacSha256::new_from_slice(&self.k).unwrap();
-    hmac.update(&self.v);
-    self.v = hmac.finalize().into_bytes().to_vec();
-
-    if let Some(seed) = seed seed_material {
+    fn update(&mut self, seed_material: Option<&[u8]>) {
         let mut hmac = HmacSha256::new_from_slice(&self.k).unwrap();
         hmac.update(&self.v);
-        hmac.update(&[1u8]);
-        hmac.update(seed);
+        hmac.update(&[0u8]);
+        if let Some(seed) = seed_material {
+            hmac.update(seed);
+        }
         self.k = hmac.finalize().into_bytes().to_vec();
 
         let mut hmac = HmacSha256::new_from_slice(&self.k).unwrap();
         hmac.update(&self.v);
         self.v = hmac.finalize().into_bytes().to_vec();
+
+        if let Some(seed) = seed_material {
+            let mut hmac = HmacSha256::new_from_slice(&self.k).unwrap();
+            hmac.update(&self.v);
+            hmac.update(&[1u8]);
+            hmac.update(seed);
+            self.k = hmac.finalize().into_bytes().to_vec();
+
+            let mut hmac = HmacSha256::new_from_slice(&self.k).unwrap();
+            hmac.update(&self.v);
+            self.v = hmac.finalize().into_bytes().to_vec();
+        }
     }
 }
 

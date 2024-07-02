@@ -1,14 +1,22 @@
-use bip39::{Mnemonic, Language, Seed};
+use bip38::{Decrypt, Encrypt, EncryptWif, Error};
 
-pub struct BIP39Mnemonic;
+pub struct BIP38Encryption;
 
-impl BIP39Mnemonic {
-    pub fn to_mnemonic(seed: &[u8]) -> String {
-        Mnemonic::from_entropy(seed, Language::English).unwrap().phrase().to_string()
+impl BIP38Encryption {
+    pub fn encrypt_key(key: &[u8; 32], passphrase: &str, compress: bool) -> Result<String, Error> {
+        key.encrypt(passphrase, compress)
     }
 
-    pub fn from_mnemonic(mnemonic: &str) -> Vec<u8> {
-        Mnemonic::from_phrase(mnemonic, Language::English).unwrap().entropy().to_vec()
+    pub fn decrypt_key(encrypted_key: &str, passphrase: &str) -> Result<([u8; 32], bool), Error> {
+        encrypted_key.decrypt(passphrase)
+    }
+
+    pub fn encrypt_wif(wif: &str, passphrase: &str) -> Result<String, Error> {
+        wif.encrypt_wif(passphrase)
+    }
+
+    pub fn decrypt_wif(encrypted_wif: &str, passphrase: &str) -> Result<String, Error> {
+        encrypted_wif.decrypt_to_wif(passphrase)
     }
 }
 
@@ -17,16 +25,37 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_to_mnemonic() {
-        let seed = [0x00; 16];
-        let mnemonic = BIP39Mnemonic::to_mnemonic(&seed);
-        assert_eq!(mnemonic.split_whitespace().count(), 12);
+    fn test_encrypt_key() {
+        let key = [0x11; 32];
+        let passphrase = "strong_pass";
+        let encrypted_key = BIP38Encryption::encrypt_key(&key, passphrase, true).unwrap();
+        assert!(!encrypted_key.is_empty());
     }
 
     #[test]
-    fn test_from_mnemonic() {
-        let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-        let seed = BIP39Mnemonic::from_mnemonic(mnemonic);
-        assert_eq!(seed.len(), 16);
+    fn test_decrypt_key() {
+        let key = [0x11; 32];
+        let passphrase = "strong_pass";
+        let encrypted_key = BIP38Encryption::encrypt_key(&key, passphrase, true).unwrap();
+        let (decrypted_key, compress) = BIP38Encryption::decrypt_key(&encrypted_key, passphrase).unwrap();
+        assert_eq!(key, decrypted_key);
+        assert!(compress);
+    }
+
+    #[test]
+    fn test_encrypt_wif() {
+        let wif = "KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp";
+        let passphrase = "strong_pass";
+        let encrypted_wif = BIP38Encryption::encrypt_wif(wif, passphrase).unwrap();
+        assert!(!encrypted_wif.is_empty());
+    }
+
+    #[test]
+    fn test_decrypt_wif() {
+        let wif = "KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp";
+        let passphrase = "strong_pass";
+        let encrypted_wif = BIP38Encryption::encrypt_wif(wif, passphrase).unwrap();
+        let decrypted_wif = BIP38Encryption::decrypt_wif(&encrypted_wif, passphrase).unwrap();
+        assert_eq!(wif, decrypted_wif);
     }
 }

@@ -47,27 +47,34 @@ impl Wots {
     pub fn sign(&self, message: &[u8]) -> Vec<String> {
         let hash = Sha256HashFunction::hash_bytes(message);
         let mut signature = Vec::new();
-
+    
         for (i, &byte) in hash.iter().enumerate() {
+            if i >= self.private_key.len() {
+                break;
+            }
             let sk_part = decode(&self.private_key[i]).unwrap();
             let sig_part = Self::chain_fn_with_r(&sk_part, &sk_part, byte as usize);
             signature.push(encode(&sig_part));
         }
-
+    
         signature
     }
+    
 
     pub fn verify(&self, message: &[u8], signature: &[String]) -> bool {
         let hash = Sha256HashFunction::hash_bytes(message);
-
+    
         for (i, &byte) in hash.iter().enumerate() {
+            if i >= signature.len() || i >= self.public_key.len() {
+                return false;
+            }
             let sig_part = decode(&signature[i]).unwrap();
             let pk_part = Self::chain_fn_with_r(&sig_part, &sig_part, (self.w - 1) - byte as usize);
             if encode(pk_part) != self.public_key[i] {
                 return false;
             }
         }
-
+    
         true
     }
 }
