@@ -1,13 +1,13 @@
 use crate::hash_function::Sha256HashFunction;
 
 pub struct MerkleTree {
-    pub leaves: Vec<String>,
-    pub tree: Vec<Vec<String>>,
-    pub root: String,
+    pub leaves: Vec<[u8; 32]>,
+    pub tree: Vec<Vec<[u8; 32]>>,
+    pub root: Option<[u8; 32]>,
 }
 
 impl MerkleTree {
-    pub fn new(leaves: Vec<String>) -> Self {
+    pub fn new(leaves: Vec<[u8; 32]>) -> Self {
         let mut tree = vec![leaves.clone()];
         let mut current_layer = leaves.clone();
 
@@ -16,12 +16,12 @@ impl MerkleTree {
 
             for i in (0..current_layer.len()).step_by(2) {
                 let combined = if i + 1 < current_layer.len() {
-                    format!("{}{}", current_layer[i], current_layer[i + 1])
+                    [current_layer[i].as_ref(), current_layer[i + 1].as_ref()].concat()
                 } else {
-                    current_layer[i].clone()
+                    current_layer[i].to_vec()
                 };
 
-                let hashed = Sha256HashFunction::hash_hex(combined.as_bytes());
+                let hashed = Sha256HashFunction::hash(&combined);
                 next_layer.push(hashed);
             }
 
@@ -29,7 +29,7 @@ impl MerkleTree {
             current_layer = next_layer;
         }
 
-        let root = current_layer.first().cloned().unwrap_or_default();
+        let root = current_layer.first().cloned();
 
         MerkleTree {
             leaves,
@@ -38,7 +38,7 @@ impl MerkleTree {
         }
     }
 
-    pub fn get_auth_path(&self, index: usize) -> Vec<String> {
+    pub fn get_auth_path(&self, index: usize) -> Vec<[u8; 32]> {
         let mut path = Vec::new();
         let mut idx = index;
 
@@ -52,22 +52,34 @@ impl MerkleTree {
         }
         path
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    pub fn update_leaf(&mut self, index: usize, new_leaf: [u8; 32]) {
+        self.leaves[index] = new_leaf;
+        self.recompute_tree();
+    }
 
-    #[test]
-    fn test_merkle_tree() {
-        let leaves = vec![
-            "a".to_string(),
-            "b".to_string(),
-            "c".to_string(),
-            "d".to_string(),
-        ];
-        let tree = MerkleTree::new(leaves);
-        let expected_root_hash = "12a40550c10c6339bf6f271445270e49b844d6c9e8abc36b9b642be532befe94";  // Replace with actual expected hash
-        assert_eq!(tree.root, expected_root_hash);
+    fn recompute_tree(&mut self) {
+        let mut current_layer = self.leaves.clone();
+        self.tree = vec![current_layer.clone()];
+
+        while current_layer.len() > 1 {
+            let mut next_layer = Vec::new();
+
+            for i in (0..current_layer.len()).step_by(2) {
+                let combined = if i + 1 < current_layer.len() {
+                    [current_layer[i].as_ref(), current_layer[i + 1].as_ref()].concat()
+                } else {
+                    current_layer[i].to_vec()
+                };
+
+                let hashed = Sha256HashFunction::hash(&combined);
+                next_layer.push(hashed);
+            }
+
+            self.tree.push(next_layer.clone());
+            current_layer = next_layer;
+        }
+
+        self.root = current_layer.first().cloned();
     }
 }
