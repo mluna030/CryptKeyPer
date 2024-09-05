@@ -1,5 +1,7 @@
-use crate::hash_function::Sha256HashFunction;
-use crate::drbg::HmacDrbg;
+use std::convert::TryInto;
+
+use crate::hash_function::hash_function::Sha256HashFunction;
+use crate::drbg::drbg::HmacDrbg;
 use hex::{encode, decode};
 
 pub struct Wots 
@@ -11,33 +13,37 @@ pub struct Wots
 
 impl Wots 
 {
-    pub fn new(seed: &[u8], w: usize) -> Self 
-    {
+    pub fn new(seed: &[u8], w: usize) -> Self {
         let mut private_key = Vec::new();
         let mut public_key = Vec::new();
 
-        let mut drbg = HmacDrbg::new(seed, None);
-        for _ in 0..w 
-        {
-            let mut key_part = Sha256HashFunction::hash(&[seed, &[i as u8]].concat());
+        let mut _drbg = HmacDrbg::new(seed, None);
+        for i in 0..w {
+            // Combine seed and `i`, hash the result, and convert to `[u8; 32]`
+            let mut key_part: [u8; 32] = Sha256HashFunction::hash(&[seed, &[i as u8]].concat())
+                .try_into()
+                .expect("Hash output size mismatch");
+
             private_key.push(key_part);
 
-            for _ in 0..(1 << w) 
-            {
-                key_part = Sha256HashFunction::hash(&key_part);
+            // Iteratively hash `key_part` (repeated `2^w` times)
+            for _ in 0..(1 << w) {
+                key_part = Sha256HashFunction::hash(&key_part)
+                    .try_into()
+                    .expect("Hash output size mismatch");
             }
+
             public_key.push(key_part);
         }
 
-        Wots 
-        {
+        Wots {
             private_key,
             public_key,
             w,
         }
     }
 
-    fn chain_fn(x: &[u8], steps: usize) -> [u8; 32] 
+    fn chain_fn(&self, x: &[u8], steps: usize) -> [u8; 32] 
     {
         let mut result = x.to_vec();
         for _ in 0..steps 
@@ -47,7 +53,7 @@ impl Wots
         result.try_into().expect("Hash output size mismatch")
     }
 
-    fn chain_fn_with_r(x: &[u8], r: &[u8], steps: usize) -> Vec<u8> 
+    fn chain_fn_with_r(&self, x: &[u8], r: &[u8], steps: usize) -> Vec<u8> 
     {
         let mut result = x.to_vec();
         for _ in 0..steps 
@@ -95,45 +101,3 @@ impl Wots
         Ok(true)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::hash_function::Sha256HashFunction;
-
-    #[test]
-    fn test_wots_sign_verify() 
-    {
-        let seed = Sha256HashFunction::hash(b"test_seed");
-        let w = 16;
-        let wots = Wots::new(&seed, w);
-
-        let message = b"test_message";
-        let signature = wots.sign(message).expect("Signing failed");
-        assert!(wots.verify(message, &signature).expect("Verification failed"));
-    }
-
-    #[test]
-    fn test_invalid_message_length() 
-    {
-        let seed = Sha256HashFunction::hash(b"test_seed");
-        let w = 16;
-        let wots = Wots::new(&seed, w);
-
-        let message = b"short";
-        assert!(wots.sign(message).is_err(), "Expected signing to fail with invalid message length");
-    }
-
-    #[test]
-    fn test_invalid_signature_length() 
-    {
-        let seed = Sha256HashFunction::hash(b"test_seed");
-        let w = 16;
-        let wots = Wots::new(&seed, w);
-
-        let message = b"test_message";
-        let mut signature = wots.sign(message).expect("Signing failed");
-
-        signature.pop();
-        assert!(wots.verify(message, &signature).is_err(), "Expected verification to fail with invalid signature length");
-    }

@@ -1,4 +1,6 @@
-use crate::hash_function::Sha256HashFunction;
+use std::convert::TryInto;
+
+use crate::hash_function::hash_function::Sha256HashFunction;
 
 pub struct MerkleTree {
     pub leaves: Vec<[u8; 32]>,
@@ -18,10 +20,11 @@ impl MerkleTree {
                 let combined = if i + 1 < current_layer.len() {
                     [current_layer[i].as_ref(), current_layer[i + 1].as_ref()].concat()
                 } else {
-                    current_layer[i].to_vec()
+                    current_layer[i].to_vec() 
                 };
-
-                let hashed = Sha256HashFunction::hash(&combined);
+                let hashed: [u8; 32] = Sha256HashFunction::hash(&combined)
+                    .try_into()
+                    .expect("Hash output size mismatch");
                 next_layer.push(hashed);
             }
 
@@ -71,8 +74,9 @@ impl MerkleTree {
                 } else {
                     current_layer[i].to_vec()
                 };
-
-                let hashed = Sha256HashFunction::hash(&combined);
+                let hashed: [u8; 32] = Sha256HashFunction::hash(&combined)
+                    .try_into()
+                    .expect("Hash output size mismatch");
                 next_layer.push(hashed);
             }
 
