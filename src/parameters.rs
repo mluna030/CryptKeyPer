@@ -1,4 +1,4 @@
-use crate::hash_traits::{HashFunction, Sha256HashFunction, Sha512HashFunction, Shake128HashFunction};
+use crate::hash_traits::{HashFunction, HashFunctionType, Sha256HashFunction, Sha512HashFunction, Shake128HashFunction};
 use crate::errors::{CryptKeyperError, Result};
 
 /// XMSS Parameter Sets following RFC 8391 and NIST recommendations
@@ -99,16 +99,16 @@ impl XmssParameterSet {
     }
     
     /// Create a hash function instance for this parameter set
-    pub fn create_hash_function(self) -> Box<dyn HashFunction> {
+    pub fn create_hash_function(self) -> HashFunctionType {
         match self {
             Self::XmssSha256W16H10 | Self::XmssSha256W16H16 | Self::XmssSha256W16H20 => {
-                Box::new(Sha256HashFunction)
+                HashFunctionType::Sha256(Sha256HashFunction)
             }
             Self::XmssSha512W16H10 | Self::XmssSha512W16H16 | Self::XmssSha512W16H20 => {
-                Box::new(Sha512HashFunction)
+                HashFunctionType::Sha512(Sha512HashFunction)
             }
             Self::XmssShake128W16H10 | Self::XmssShake128W16H16 | Self::XmssShake128W16H20 => {
-                Box::new(Shake128HashFunction)
+                HashFunctionType::Shake128(Shake128HashFunction)
             }
         }
     }

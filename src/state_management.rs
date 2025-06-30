@@ -4,7 +4,7 @@ use std::io::{Read, Write, Seek, SeekFrom};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use aes_gcm::{Aes256Gcm, Key, Nonce, aead::{Aead, NewAead, generic_array::GenericArray}};
+use aes_gcm::{Aes256Gcm, Key, KeyInit, Nonce, aead::Aead};
 use scrypt::{scrypt, Params as ScryptParams};
 use serde::{Serialize, Deserialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};

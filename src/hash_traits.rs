@@ -1,7 +1,7 @@
 use crate::errors::{CryptKeyperError, Result};
 
 /// Generic hash function trait for XMSS
-pub trait HashFunction: Clone + Send + Sync {
+pub trait HashFunction: Send + Sync {
     const OUTPUT_SIZE: usize;
     const NAME: &'static str;
     
@@ -165,5 +165,59 @@ impl HashFunction for Shake128HashFunction {
         data.extend_from_slice(&masked_right);
         
         Ok(self.hash(&data))
+    }
+}
+/// Enum wrapper for hash functions to enable dynamic dispatch
+#[derive(Clone)]
+pub enum HashFunctionType {
+    Sha256(Sha256HashFunction),
+    Sha512(Sha512HashFunction),
+    Shake128(Shake128HashFunction),
+}
+
+impl HashFunction for HashFunctionType {
+    const OUTPUT_SIZE: usize = 32; // We'll use dynamic dispatch for this
+    const NAME: &'static str = "Dynamic";
+    
+    fn hash(&self, data: &[u8]) -> Vec<u8> {
+        match self {
+            HashFunctionType::Sha256(h) => h.hash(data),
+            HashFunctionType::Sha512(h) => h.hash(data),
+            HashFunctionType::Shake128(h) => h.hash(data),
+        }
+    }
+    
+    fn prf(&self, key: &[u8], input: &[u8]) -> Result<Vec<u8>> {
+        match self {
+            HashFunctionType::Sha256(h) => h.prf(key, input),
+            HashFunctionType::Sha512(h) => h.prf(key, input),
+            HashFunctionType::Shake128(h) => h.prf(key, input),
+        }
+    }
+    
+    fn hash_with_bitmask(&self, key: &[u8], left: &[u8], right: &[u8], bitmask_seed: &[u8]) -> Result<Vec<u8>> {
+        match self {
+            HashFunctionType::Sha256(h) => h.hash_with_bitmask(key, left, right, bitmask_seed),
+            HashFunctionType::Sha512(h) => h.hash_with_bitmask(key, left, right, bitmask_seed),
+            HashFunctionType::Shake128(h) => h.hash_with_bitmask(key, left, right, bitmask_seed),
+        }
+    }
+}
+
+impl HashFunctionType {
+    pub fn output_size(&self) -> usize {
+        match self {
+            HashFunctionType::Sha256(_) => Sha256HashFunction::OUTPUT_SIZE,
+            HashFunctionType::Sha512(_) => Sha512HashFunction::OUTPUT_SIZE,
+            HashFunctionType::Shake128(_) => Shake128HashFunction::OUTPUT_SIZE,
+        }
+    }
+    
+    pub fn name(&self) -> &'static str {
+        match self {
+            HashFunctionType::Sha256(_) => Sha256HashFunction::NAME,
+            HashFunctionType::Sha512(_) => Sha512HashFunction::NAME,
+            HashFunctionType::Shake128(_) => Shake128HashFunction::NAME,
+        }
     }
 }

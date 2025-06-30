@@ -1,0 +1,74 @@
+{
+  "name": "cryptkeyper-wasm",
+  "version": "0.1.0",
+  "description": "WebAssembly bindings for CryptKeyPer - RFC 8391 compliant XMSS post-quantum signatures",
+  "main": "pkg/cryptkeyper_wasm.js",
+  "types": "cryptkeyper.d.ts",
+  "files": [
+    "pkg/",
+    "cryptkeyper.d.ts",
+    "example.js",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "wasm-pack build --target web --scope cryptkeyper",
+    "build-node": "wasm-pack build --target nodejs --scope cryptkeyper",
+    "build-bundler": "wasm-pack build --target bundler --scope cryptkeyper",
+    "build-all": "npm run build && npm run build-node && npm run build-bundler",
+    "test": "node example.js",
+    "serve": "python3 -m http.server 8000",
+    "demo": "npm run serve"
+  },
+  "keywords": [
+    "cryptography",
+    "post-quantum",
+    "xmss",
+    "signatures",
+    "quantum-resistant",
+    "webassembly",
+    "wasm",
+    "rfc8391",
+    "merkle",
+    "tree",
+    "digital-signatures"
+  ],
+  "author": "Michael Luna <michael.angelo.luna1@gmail.com>",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mluna030/CryptKeyPer.git",
+    "directory": "wasm-bindings"
+  },
+  "bugs": {
+    "url": "https://github.com/mluna030/CryptKeyPer/issues"
+  },
+  "homepage": "https://github.com/mluna030/CryptKeyPer#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "crypto": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./pkg/cryptkeyper_wasm.js",
+      "require": "./pkg/cryptkeyper_wasm.js",
+      "types": "./cryptkeyper.d.ts"
+    },
+    "./pkg/*": "./pkg/*"
+  },
+  "browser": {
+    "crypto": false
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/mluna030"
+  }
+}

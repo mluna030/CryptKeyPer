@@ -102,12 +102,20 @@
 pub mod errors;
 pub mod hash_function;
 pub mod hash_traits;
+pub mod hash_optimized;
 pub mod parameters;
 pub mod state_management;
 pub mod drbg;
 pub mod random_key_generator;
 pub mod mnemonic;
 pub mod xmss;
+pub mod pqc_graveyard;
+pub mod hardware;
+pub mod mobile;
+
+// WebAssembly bindings
+#[cfg(feature = "wasm")]
+pub mod wasm;
 
 pub use errors::{CryptKeyperError, Result};
 pub use parameters::{XmssParameterSet, XmssMtParameterSet, WotsParameters};
