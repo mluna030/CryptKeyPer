@@ -479,7 +479,7 @@ impl Drop for SecureMemoryHandle {
 }
 
 // Safe to send since we use proper synchronization
-impl Send for SecureMemoryHandle {}
+unsafe impl Send for SecureMemoryHandle {}
 
 #[cfg(test)]
 mod tests {

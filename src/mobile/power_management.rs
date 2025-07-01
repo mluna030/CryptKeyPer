@@ -315,14 +315,14 @@ impl PowerManager {
     
     fn calculate_efficiency_score(&self) -> f64 {
         // Score from 0.0 to 10.0 based on power efficiency
-        let base_score = match self.power_mode {
+        let base_score: f64 = match self.power_mode {
             PowerMode::Emergency => 2.0,
             PowerMode::PowerSaver => 8.0,
             PowerMode::Balanced => 6.0,
             PowerMode::Performance => 4.0,
         };
         
-        let thermal_penalty = match self.thermal_state {
+        let thermal_penalty: f64 = match self.thermal_state {
             ThermalState::Normal => 0.0,
             ThermalState::Warm => -1.0,
             ThermalState::Hot => -2.0,

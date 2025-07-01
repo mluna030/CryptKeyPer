@@ -84,7 +84,7 @@ impl XmssOptimized {
             .map_err(|_| CryptKeyperError::KeyGenerationError("Public seed generation failed".to_string()))?;
         
         let wots_params = parameter_set.wots_params();
-        let hash_function = parameter_set.create_hash_function();
+        let hash_function = Arc::new(parameter_set.create_hash_function());
         let max_signatures = parameter_set.max_signatures();
         
         // Generate root lazily - we'll compute it when first needed
@@ -108,7 +108,7 @@ impl XmssOptimized {
         }));
         
         // Initialize caches with reasonable sizes
-        let cache_size = std::cmp::min(1000, max_signatures / 100);
+        let cache_size = std::cmp::min(1000, max_signatures.try_into().unwrap_or(1000usize) / 100);
         let leaf_cache = Arc::new(RwLock::new(LruCache::new(
             std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
         )));
@@ -421,7 +421,7 @@ impl XmssOptimized {
         for (height, sibling) in auth_path.iter().enumerate() {
             let mut addr = XmssAddress::new();
             addr.set_tree_height(height as u32);
-            addr.set_tree_index(current_index >> 1);
+            addr.set_tree_index((current_index >> 1).try_into().unwrap());
             addr.set_type(AddressType::HashTreeAddress);
             
             // Determine if current node is left or right child
@@ -447,7 +447,8 @@ impl XmssOptimized {
         data.extend_from_slice(input);
         
         use crate::hash_traits::Sha256HashFunction;
-        let hash = Sha256HashFunction::hash(&data);
+        let hash_fn = Sha256HashFunction;
+        let hash = hash_fn.hash(&data);
         if hash.len() != 32 {
             return Err(CryptKeyperError::HashError("PRF hash size mismatch".to_string()));
         }

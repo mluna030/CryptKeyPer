@@ -1,7 +1,7 @@
 //! Lattice-based schemes that didn't make it to NIST finals
 
 use super::*;
-use crate::errors::{CryptKeyperError, Result};
+use crate::errors::CryptKeyperError;
 
 /// TESLA: Tightly-Secure Efficient Signature Algorithm
 /// Status: Eliminated in NIST Round 2 due to large signature sizes

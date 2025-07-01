@@ -191,26 +191,26 @@ impl GraveyardTour {
     pub fn scheme_comparison(&self) -> Vec<SchemeComparison> {
         vec![
             SchemeComparison {
-                name: "SIKE vs CRYSTALS-Kyber",
-                winner: "Kyber",
+                name: "SIKE vs CRYSTALS-Kyber".to_string(),
+                winner: "Kyber".to_string(),
                 reason: "SIKE had tiny keys but was completely broken".to_string(),
                 lesson: "Mathematical novelty can be dangerous".to_string(),
             },
             SchemeComparison {
-                name: "Rainbow vs CRYSTALS-Dilithium", 
-                winner: "Dilithium",
+                name: "Rainbow vs CRYSTALS-Dilithium".to_string(), 
+                winner: "Dilithium".to_string(),
                 reason: "Rainbow had massive public keys (60KB vs 1.3KB)".to_string(),
                 lesson: "Size matters in practical cryptography".to_string(),
             },
             SchemeComparison {
-                name: "PICNIC vs SPHINCS+",
-                winner: "SPHINCS+",
+                name: "PICNIC vs SPHINCS+".to_string(),
+                winner: "SPHINCS+".to_string(),
                 reason: "PICNIC signatures were 10x larger".to_string(),
                 lesson: "Even exotic schemes must be practical".to_string(),
             },
             SchemeComparison {
-                name: "XMSS vs SPHINCS+",
-                winner: "Both (different use cases)",
+                name: "XMSS vs SPHINCS+".to_string(),
+                winner: "Both (different use cases)".to_string(),
                 reason: "XMSS is stateful but efficient, SPHINCS+ is stateless but slow".to_string(),
                 lesson: "Different problems need different solutions".to_string(),
             },

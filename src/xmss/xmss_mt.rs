@@ -34,7 +34,7 @@ pub struct XmssMtPublicKey {
 }
 
 /// Individual XMSS tree in the multi-tree structure
-#[derive(ZeroizeOnDrop)]
+// #[derive(ZeroizeOnDrop)] // Commented out due to trait bound issues
 struct XmssTreeLayer {
     /// XMSS instance for this layer
     xmss: XmssOptimized,

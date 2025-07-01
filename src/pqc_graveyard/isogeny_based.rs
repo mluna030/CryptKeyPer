@@ -30,20 +30,20 @@ impl ExperimentalPQScheme for Sike {
         }
     }
     
-    fn keygen() -> Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
+    fn keygen() -> std::result::Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
         // We could implement this for educational purposes to show what went wrong
         Err(CryptKeyperError::InvalidParameter(
             "SIKE is broken - implementation disabled for safety".to_string()
         ))
     }
     
-    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> Result<Self::Signature, Self::Error> {
+    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> std::result::Result<Self::Signature, Self::Error> {
         Err(CryptKeyperError::InvalidParameter(
             "SIKE is broken - use for research only".to_string()
         ))
     }
     
-    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> Result<bool, Self::Error> {
+    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> std::result::Result<bool, Self::Error> {
         Err(CryptKeyperError::InvalidParameter(
             "SIKE is broken - verification meaningless".to_string()
         ))
@@ -104,15 +104,15 @@ impl ExperimentalPQScheme for Csidh {
         }
     }
     
-    fn keygen() -> Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
+    fn keygen() -> std::result::Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
         todo!("Implement CSIDH keygen - proceed with caution!")
     }
     
-    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> Result<Self::Signature, Self::Error> {
+    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> std::result::Result<Self::Signature, Self::Error> {
         todo!("Implement CSIDH-based signatures")
     }
     
-    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> Result<bool, Self::Error> {
+    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> std::result::Result<bool, Self::Error> {
         todo!("Implement CSIDH verification")
     }
     

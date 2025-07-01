@@ -106,7 +106,7 @@ impl SecureStateManager {
         
         // Derive key using scrypt
         let mut key = [0u8; 32];
-        let params = ScryptParams::new(15, 8, 1)
+        let params = ScryptParams::new(15, 8, 1, 32)
             .map_err(|e| CryptKeyperError::KeyGenerationError(format!("Scrypt params error: {}", e)))?;
         
         scrypt(password.as_bytes(), &salt, &params, &mut key)
@@ -171,7 +171,8 @@ impl SecureStateManager {
         rand::thread_rng().fill_bytes(&mut nonce_bytes);
         
         // Encrypt private seed
-        let cipher = Aes256Gcm::new(Key::from_slice(&encryption_key));
+        let cipher = Aes256Gcm::new_from_slice(&encryption_key)
+            .map_err(|e| CryptKeyperError::KeyGenerationError(format!("AES key error: {}", e)))?;
         let nonce = Nonce::from_slice(&nonce_bytes);
         
         let encrypted_private_seed = cipher
@@ -180,7 +181,7 @@ impl SecureStateManager {
         
         // Encrypt signature index
         let encrypted_signature_index = cipher
-            .encrypt(nonce, &signature_index.to_le_bytes())
+            .encrypt(nonce, signature_index.to_le_bytes().as_ref())
             .map_err(|e| CryptKeyperError::KeyGenerationError(format!("Index encryption failed: {}", e)))?;
         
         // Read existing state to preserve salt
@@ -235,8 +236,9 @@ impl SecureStateManager {
         let state = self.read_encrypted_state()?;
         
         // Decrypt private seed
-        let cipher = Aes256Gcm::new(Key::from_slice(&encryption_key));
-        let nonce = Nonce::from_slice(&state.nonce);
+        let cipher = Aes256Gcm::new_from_slice(&encryption_key)
+            .map_err(|e| CryptKeyperError::KeyGenerationError(format!("AES key error: {}", e)))?;
+        let nonce = aes_gcm::Nonce::from_slice(&state.nonce);
         
         let private_seed_bytes = cipher
             .decrypt(nonce, state.encrypted_private_seed.as_ref())

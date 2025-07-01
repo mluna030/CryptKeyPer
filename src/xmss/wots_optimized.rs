@@ -46,7 +46,7 @@ impl WotsPlusOptimized {
         
         Self {
             params,
-            hash_function,
+            hash_function: Arc::new(hash_function),
             private_seed: Arc::new(private_seed),
             pub_seed: Arc::new(pub_seed),
             address,
@@ -75,7 +75,7 @@ impl WotsPlusOptimized {
         addr.set_hash_address(0);
         
         // Generate private key for this chain
-        let private_key = self.prf(&self.private_seed, &addr.to_bytes())?;
+        let private_key = self.prf(self.private_seed.as_ref(), &addr.to_bytes())?;
         
         // Generate public key by chaining
         let public_key = self.chain(
@@ -108,10 +108,10 @@ impl WotsPlusOptimized {
             
             // Generate key and bitmask for this iteration
             addr.set_key_and_mask(0);
-            let key = self.prf(&self.pub_seed, &addr.to_bytes())?;
+            let key = self.prf(self.pub_seed.as_ref(), &addr.to_bytes())?;
             
             addr.set_key_and_mask(1);
-            let bitmask = self.prf(&self.pub_seed, &addr.to_bytes())?;
+            let bitmask = self.prf(self.pub_seed.as_ref(), &addr.to_bytes())?;
             
             // Apply bitmask
             let mut masked_input = input.clone();

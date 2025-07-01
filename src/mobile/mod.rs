@@ -252,7 +252,7 @@ impl MobileBenchmark {
         
         MobileCompatibility {
             level: compatibility,
-            score: score.max(0.0),
+            score: score.max(0.0) as f64,
             issues,
             recommendations: generate_recommendations(&self),
         }

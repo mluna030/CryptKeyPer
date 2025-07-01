@@ -1,8 +1,4 @@
 use crate::hash_traits::HashFunction;
-use crate::errors::Result;
-
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::*;
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 
@@ -193,7 +189,6 @@ impl<H: HashFunction> SimdHashFunction<H> {
 
 /// SIMD-optimized SHA-256 implementations
 pub mod simd_sha256 {
-    use super::*;
     
     /// AVX2 8-way parallel SHA-256 
     #[cfg(target_arch = "x86_64")]

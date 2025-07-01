@@ -1,6 +1,7 @@
 use crate::errors::{CryptKeyperError, Result};
 use crate::hash_function::hash_function::Sha256HashFunction;
 use hmac::{Hmac, Mac};
+use aes_gcm::KeyInit;
 use sha2::Sha256;
 
 /// Simple mnemonic seed handling (placeholder implementation)
@@ -69,7 +70,7 @@ impl MnemonicSeed {
     }
     
     /// PBKDF2-HMAC implementation
-    fn pbkdf2_hmac<M: Mac + Clone>(
+    fn pbkdf2_hmac<M: Mac + Clone + KeyInit>(
         password: &[u8],
         salt: &[u8],
         iterations: u32,
@@ -83,8 +84,7 @@ impl MnemonicSeed {
             let mut u = vec![0u8; hlen];
             let mut f = vec![0u8; hlen];
             
-            // First iteration: U1 = HMAC(password, salt || block)
-            let mut mac = M::new_from_slice(password)
+            let mut mac = <M as Mac>::new_from_slice(password)
                 .map_err(|_| CryptKeyperError::CryptographicError("HMAC key error".to_string()))?;
             mac.update(salt);
             mac.update(&(block as u32).to_be_bytes());
@@ -92,8 +92,9 @@ impl MnemonicSeed {
             f = u.clone();
             
             // Subsequent iterations: Ui = HMAC(password, Ui-1)
-            for _ in 1..iterations {
-                let mut mac = M::new_from_slice(password)
+            let mut tmp = 1..iterations;
+            while let Some(_) = tmp.next() {
+                let mut mac = <M as Mac>::new_from_slice(password)
                     .map_err(|_| CryptKeyperError::CryptographicError("HMAC key error".to_string()))?;
                 mac.update(&u);
                 u = mac.finalize().into_bytes().to_vec();
