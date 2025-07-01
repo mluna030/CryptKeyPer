@@ -12,7 +12,6 @@ dependencies = [
  "generic-array",
 ]
 
-
 [[package]]
 name = "aes"
 version = "0.8.4"

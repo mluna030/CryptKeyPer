@@ -431,13 +431,13 @@ mod tests {
         let mut signatures = Vec::new();
         
         for msg in &messages {
-            let sig = xmss_mt.sign(msg)?;
+            let sig = xmss_mt.sign(*msg)?;
             signatures.push(sig);
         }
         
         // Verify all signatures
         for (i, (msg, sig)) in messages.iter().zip(signatures.iter()).enumerate() {
-            let is_valid = XmssMt::verify(msg, sig, &xmss_mt.public_key)?;
+            let is_valid = XmssMt::verify(*msg, sig, &xmss_mt.public_key)?;
             assert!(is_valid, "Signature {} should be valid", i);
         }
         

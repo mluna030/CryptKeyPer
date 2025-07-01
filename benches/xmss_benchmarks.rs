@@ -140,7 +140,7 @@ fn benchmark_wots_parameters(c: &mut Criterion) {
         let wots_params = param_set.wots_params();
         
         group.bench_function(&format!("base_w_{}", param_set.description()), |b| {
-            let message = vec![42u8; param_set.hash_size()];
+            let message = vec![42u8; param_set.output_size()];
             b.iter(|| {
                 let _base_w = wots_params.message_to_base_w_with_checksum(&message);
             });

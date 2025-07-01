@@ -171,7 +171,7 @@ impl ComprehensiveBenchmarks {
                 |b, &batch_size| {
                     b.iter(|| {
                         // Simulate batch verification
-                        Self::simulate_batch_verification(black_box(*batch_size))
+                        Self::simulate_batch_verification(black_box(batch_size))
                     });
                 }
             );
@@ -265,7 +265,7 @@ impl ComprehensiveBenchmarks {
                 &height,
                 |b, &height| {
                     b.iter(|| {
-                        Self::simulate_merkle_tree_construction(black_box(*height))
+                        Self::simulate_merkle_tree_construction(black_box(height))
                     });
                 }
             );
@@ -305,7 +305,7 @@ impl ComprehensiveBenchmarks {
                 &size,
                 |b, &size| {
                     b.iter(|| {
-                        Self::simulate_state_encryption_decryption(black_box(*size))
+                        Self::simulate_state_encryption_decryption(black_box(size))
                     });
                 }
             );
@@ -325,7 +325,7 @@ impl ComprehensiveBenchmarks {
                 &threads,
                 |b, &threads| {
                     b.iter(|| {
-                        Self::simulate_parallel_operations(black_box(*threads))
+                        Self::simulate_parallel_operations(black_box(threads))
                     });
                 }
             );
