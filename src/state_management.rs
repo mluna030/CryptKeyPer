@@ -1,13 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write, Seek, SeekFrom};
+use std::io::{Read, Write};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use aes_gcm::{Aes256Gcm, Key, KeyInit, Nonce, aead::Aead};
+use aes_gcm::{Aes256Gcm, KeyInit, Nonce, aead::Aead};
 use scrypt::{scrypt, Params as ScryptParams};
 use serde::{Serialize, Deserialize};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::ZeroizeOnDrop;
 use parking_lot::{RwLock, Mutex};
 
 use crate::errors::{CryptKeyperError, Result};

@@ -3,7 +3,6 @@
 //! This module provides NEON-accelerated implementations of cryptographic
 //! operations optimized for ARM processors in mobile devices.
 
-use crate::hash_traits::HashFunction;
 use crate::errors::Result;
 
 #[cfg(target_arch = "aarch64")]

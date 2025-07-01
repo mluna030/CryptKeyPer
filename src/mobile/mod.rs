@@ -190,7 +190,7 @@ impl MobileBenchmark {
             * if config.power_efficient { 1.2 } else { 1.0 };
         let sign_time_ms = (50.0 / base_performance / neon_speedup)
             * if config.power_efficient { 1.1 } else { 1.0 };
-        let verify_time_ms = (25.0 / base_performance / neon_speedup);
+        let verify_time_ms = 25.0 / base_performance / neon_speedup;
         
         let memory_usage_mb = config.max_memory_mb * 0.7; // Typical usage
         

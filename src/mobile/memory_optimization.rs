@@ -1,7 +1,7 @@
 //! Memory optimization for mobile and embedded devices
 
 use std::collections::HashMap;
-use std::sync::{Arc, Weak, Mutex};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use crate::errors::Result;
 
@@ -385,7 +385,7 @@ impl SecureMemoryManager {
                 ));
             }
             
-            let mut data = vec![0u8; size];
+            let data = vec![0u8; size];
             
             // Use mlock if available to prevent swapping
             #[cfg(all(unix, feature = "c-ffi"))]

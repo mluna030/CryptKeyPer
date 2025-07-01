@@ -1,7 +1,7 @@
 //! Isogeny-based schemes (the most dramatic failures!)
 
 use super::*;
-use crate::errors::{CryptKeyperError, Result};
+use crate::errors::CryptKeyperError;
 
 /// SIKE: Supersingular Isogeny Key Encapsulation
 /// Status: COMPLETELY BROKEN in 2022 by Castryck-Decru attack

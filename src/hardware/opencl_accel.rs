@@ -3,7 +3,6 @@
 use opencl3::{platform::Platform, device::Device, context::Context, command_queue::CommandQueue, program::Program, types::*};
 
 use crate::errors::Result;
-use super::{HardwareAccelerated, HardwarePerformance, HardwarePlatform};
 
 #[cfg(feature = "opencl")]
 pub struct OpenClXmssAccelerator {

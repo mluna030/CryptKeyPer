@@ -2,7 +2,7 @@ use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
 use parking_lot::RwLock;
 use lru::LruCache;
 use serde::{Serialize, Deserialize};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::ZeroizeOnDrop;
 
 use crate::hash_traits::HashFunction;
 use crate::parameters::{XmssParameterSet, WotsParameters};

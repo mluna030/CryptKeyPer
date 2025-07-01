@@ -2,7 +2,6 @@
 
 use std::time::{Duration, Instant};
 use std::sync::atomic::{AtomicU64, Ordering};
-use crate::errors::Result;
 
 /// Power-aware cryptographic operations manager
 pub struct PowerManager {

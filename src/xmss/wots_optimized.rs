@@ -2,7 +2,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use lru::LruCache;
 use subtle::{Choice, ConstantTimeEq};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::ZeroizeOnDrop;
 
 use crate::hash_traits::HashFunction;
 use crate::parameters::{WotsParameters, XmssParameterSet};

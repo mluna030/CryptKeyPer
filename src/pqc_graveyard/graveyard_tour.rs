@@ -4,7 +4,6 @@
 //! post-quantum schemes were eliminated from standardization.
 
 use super::*;
-use crate::errors::Result;
 use std::collections::HashMap;
 
 /// Educational tour guide for the PQC Graveyard

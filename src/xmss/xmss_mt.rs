@@ -2,11 +2,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
 use parking_lot::RwLock;
 use serde::{Serialize, Deserialize};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::ZeroizeOnDrop;
 
 use crate::hash_traits::HashFunction;
-use crate::parameters::{XmssMtParameterSet, XmssParameterSet, WotsParameters};
-use crate::xmss::address::{XmssAddress, AddressType};
+use crate::parameters::{XmssMtParameterSet, XmssParameterSet};
 use crate::xmss::xmss_optimized::{XmssOptimized, XmssSignatureOptimized, XmssPublicKeyOptimized};
 use crate::errors::{CryptKeyperError, Result};
 use crate::random_key_generator::random_key_generator::OsRandomKeyGenerator;
@@ -154,7 +153,7 @@ impl XmssMt {
         
         // Create XMSS instance with derived seed
         // Note: This is a simplified approach. A full implementation would use proper key derivation.
-        let mut xmss = XmssOptimized::new(xmss_params)?;
+        let xmss = XmssOptimized::new(xmss_params)?;
         
         Ok(xmss)
     }
