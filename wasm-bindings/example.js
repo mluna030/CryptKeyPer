@@ -25,17 +25,17 @@ async function main() {
     return;
   }
 
-  console.log("🔐 CryptKeyPer WASM Demo - Post-Quantum Signatures");
+  console.log("CryptKeyPer WASM Demo - Post-Quantum Signatures");
   console.log("=" .repeat(60));
 
   // Display available parameter sets
-  console.log("\n📋 Available Parameter Sets:");
+  console.log("\nAvailable Parameter Sets:");
   const paramSets = WasmUtils.get_parameter_sets();
   paramSets.forEach(param => {
     console.log(`  ${param.id}: ${param.name} - ${param.signatures} (${param.description})`);
   });
 
-  console.log("\n🔑 Generating XMSS Key Pair...");
+  console.log("\nGenerating XMSS Key Pair...");
   
   // Generate a cryptographically secure random seed
   const seed = crypto.getRandomValues(new Uint8Array(32));
@@ -47,21 +47,21 @@ async function main() {
   
   try {
     keyPair = new WasmXmssKeyPair(parameterSet, seed);
-    console.log(`✅ Key pair generated successfully!`);
-    console.log(`📊 ${keyPair.parameter_info}`);
-    console.log(`🔢 Max signatures: ${keyPair.max_signatures.toLocaleString()}`);
-    console.log(`⏳ Remaining: ${keyPair.remaining_signatures.toLocaleString()}`);
+    console.log(`Key pair generated successfully!`);
+    console.log(`${keyPair.parameter_info}`);
+    console.log(`Max signatures: ${keyPair.max_signatures.toLocaleString()}`);
+    console.log(`Remaining: ${keyPair.remaining_signatures.toLocaleString()}`);
   } catch (error) {
-    console.error(`❌ Key generation failed: ${error}`);
+    console.error(`Key generation failed: ${error}`);
     return;
   }
 
   // Get public key
   const publicKey = keyPair.public_key;
-  console.log(`🔑 Public key size: ${publicKey.size} bytes`);
-  console.log(`🔑 Public key: ${Array.from(publicKey.bytes.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join('')}...`);
+  console.log(`Public key size: ${publicKey.size} bytes`);
+  console.log(`Public key: ${Array.from(publicKey.bytes.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join('')}...`);
 
-  console.log("\n✍️  Signing Messages...");
+  console.log("\n✍Signing Messages...");
 
   // Messages to sign
   const messages = [
@@ -77,7 +77,7 @@ async function main() {
     const message = messages[i];
     const messageBytes = new TextEncoder().encode(message);
     
-    console.log(`\n📝 Message ${i + 1}: "${message}"`);
+    console.log(`\nMessage ${i + 1}: "${message}"`);
     
     try {
       const startTime = performance.now();
@@ -86,11 +86,11 @@ async function main() {
       
       signatures.push({ message: messageBytes, signature });
       
-      console.log(`✅ Signed in ${signTime.toFixed(2)}ms`);
-      console.log(`📏 Signature size: ${signature.size} bytes`);
-      console.log(`⏳ Remaining signatures: ${keyPair.remaining_signatures.toLocaleString()}`);
+      console.log(`Signed in ${signTime.toFixed(2)}ms`);
+      console.log(`Signature size: ${signature.size} bytes`);
+      console.log(`Remaining signatures: ${keyPair.remaining_signatures.toLocaleString()}`);
     } catch (error) {
-      console.error(`❌ Signing failed: ${error}`);
+      console.error(`Signing failed: ${error}`);
     }
   }
 
@@ -107,19 +107,19 @@ async function main() {
       const isValid = publicKey.verify(message, signature);
       const verifyTime = performance.now() - startTime;
       
-      console.log(`📝 "${messageText}"`);
-      console.log(`${isValid ? '✅' : '❌'} Verification: ${isValid ? 'VALID' : 'INVALID'} (${verifyTime.toFixed(2)}ms)`);
+      console.log(`"${messageText}"`);
+      console.log(`${isValid ? 'Y' : 'N'} Verification: ${isValid ? 'VALID' : 'INVALID'} (${verifyTime.toFixed(2)}ms)`);
       
       if (!isValid) allValid = false;
     } catch (error) {
-      console.error(`❌ Verification failed: ${error}`);
+      console.error(`Verification failed: ${error}`);
       allValid = false;
     }
   }
 
-  console.log(`\n🎯 Overall Result: ${allValid ? '✅ All signatures valid!' : '❌ Some signatures invalid!'}`);
+  console.log(`\nOverall Result: ${allValid ? 'All signatures valid!' : 'Some signatures invalid!'}`);
 
-  console.log("\n🧪 Testing Invalid Signature...");
+  console.log("\nTesting Invalid Signature...");
   
   // Test with tampered message
   const originalMessage = new TextEncoder().encode("Original message");
@@ -129,36 +129,36 @@ async function main() {
     const originalSignature = keyPair.sign(originalMessage);
     const tamperedResult = publicKey.verify(tamperedMessage, originalSignature);
     
-    console.log(`🔒 Tampered message verification: ${tamperedResult ? '❌ FAILED (should be false!)' : '✅ CORRECTLY REJECTED'}`);
+    console.log(`Tampered message verification: ${tamperedResult ? 'FAILED (should be false!)' : 'CORRECTLY REJECTED'}`);
   } catch (error) {
-    console.error(`❌ Tamper test failed: ${error}`);
+    console.error(`Tamper test failed: ${error}`);
   }
 
-  console.log("\n📊 Performance Summary:");
-  console.log(`🔑 Public key size: ${publicKey.size} bytes`);
-  console.log(`📝 Signature size: ${signatures.length > 0 ? signatures[0].signature.size : 'N/A'} bytes`);
-  console.log(`🔢 Total signatures created: ${signatures.length}`);
-  console.log(`⏳ Signatures remaining: ${keyPair.remaining_signatures.toLocaleString()}`);
+  console.log("\nPerformance Summary:");
+  console.log(`Public key size: ${publicKey.size} bytes`);
+  console.log(`Signature size: ${signatures.length > 0 ? signatures[0].signature.size : 'N/A'} bytes`);
+  console.log(`Total signatures created: ${signatures.length}`);
+  console.log(`Signatures remaining: ${keyPair.remaining_signatures.toLocaleString()}`);
 
-  console.log("\n🚀 Advanced Features Demo:");
+  console.log("\nAdvanced Features Demo:");
   
   // Demonstrate key export/import (be careful in production!)
-  console.log("🔐 Exporting private key...");
+  console.log("Exporting private key...");
   const privateKey = keyPair.export_private_key();
-  console.log(`🔑 Private key: ${Array.from(privateKey.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join('')}... (32 bytes total)`);
+  console.log(`Private key: ${Array.from(privateKey.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join('')}... (32 bytes total)`);
   
   // Demonstrate public key serialization
-  console.log("📤 Serializing public key...");
+  console.log("Serializing public key...");
   const publicKeyBytes = publicKey.bytes;
   const recreatedPublicKey = new WasmXmssPublicKey(publicKeyBytes);
-  console.log(`✅ Public key serialization: ${recreatedPublicKey.size === publicKey.size ? 'SUCCESS' : 'FAILED'}`);
+  console.log(`Public key serialization: ${recreatedPublicKey.size === publicKey.size ? 'SUCCESS' : 'FAILED'}`);
 
   // Version information
-  console.log("\n📋 Library Information:");
+  console.log("\nLibrary Information:");
   console.log(WasmUtils.version_info());
 
-  console.log("\n🎉 Demo completed successfully!");
-  console.log("🔮 Your messages are now quantum-safe! 🔮");
+  console.log("\nDemo completed successfully!");
+  console.log("Your messages are now quantum-safe! 🔮");
 }
 
 // Error handling wrapper
