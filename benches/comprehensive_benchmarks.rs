@@ -76,6 +76,7 @@ impl PlatformMetrics {
         }
     }
     
+    
     pub fn fpga_simulation() -> Self {
         Self {
             platform_name: "FPGA-Simulation".to_string(),
