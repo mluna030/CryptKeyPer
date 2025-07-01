@@ -2,7 +2,7 @@
 
 Python bindings for CryptKeyPer - A high-performance, RFC 8391 compliant XMSS (eXtended Merkle Signature Scheme) post-quantum cryptography implementation.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -35,7 +35,7 @@ print(f"Signature valid: {is_valid}")
 print(f"Remaining signatures: {keypair.remaining_signatures:,}")
 ```
 
-## 📋 Parameter Sets
+## Parameter Sets
 
 Choose the right parameter set for your security and performance needs:
 
@@ -55,7 +55,7 @@ for name, info in params.items():
     print(f"{name}: {info['signatures']} - {info['description']}")
 ```
 
-## 🔧 API Reference
+## API Reference
 
 ### `XmssKeyPair`
 
@@ -140,7 +140,7 @@ def quick_verify(message: bytes, signature_bytes: bytes,
     """Quick verify - verify signature without creating objects."""
 ```
 
-## 📖 Examples
+## Examples
 
 ### Basic Signing
 
@@ -280,7 +280,7 @@ for param in ["XMSS-SHA256-W16-H10", "XMSS-SHA256-W16-H16", "XMSS-SHA512-W16-H10
     print()
 ```
 
-## ⚡ Performance
+## Performance
 
 Typical performance on modern hardware:
 
@@ -291,9 +291,9 @@ Typical performance on modern hardware:
 | Verification | 1-10ms | Generally fast |
 | Signature Size | 2.5-6KB | Larger than classical schemes |
 
-## 🔒 Security Considerations
+## Security Considerations
 
-### ⚠️ Important Warnings
+### Important Warnings
 
 1. **Stateful Signatures**: XMSS is stateful - never reuse signature indices
 2. **Key Management**: Store private keys securely and maintain state
@@ -305,29 +305,29 @@ Typical performance on modern hardware:
 ```python
 import cryptkeyper
 
-# ✅ Good: Use cryptographically secure random seed
+# Good: Use cryptographically secure random seed
 seed = cryptkeyper.CryptKeyperUtils.generate_random_seed()
 keypair = cryptkeyper.XmssKeyPair("XMSS-SHA256-W16-H16", seed)
 
-# ✅ Good: Check remaining signatures
+# Good: Check remaining signatures
 if keypair.remaining_signatures > 100:
     signature = keypair.sign(message)
 else:
     print("Warning: Running low on signatures!")
 
-# ✅ Good: Always verify signatures
+# Good: Always verify signatures
 is_valid = public_key.verify(message, signature)
 if not is_valid:
     raise ValueError("Invalid signature detected!")
 
-# ❌ Bad: Don't use predictable seeds
+# Bad: Don't use predictable seeds
 # bad_seed = b"0" * 32  # Predictable!
 
-# ❌ Bad: Don't ignore remaining signature count
+# Bad: Don't ignore remaining signature count
 # Could run out of signatures unexpectedly
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Install development dependencies
@@ -343,7 +343,7 @@ pytest tests/ -m benchmark
 pytest --cov=cryptkeyper tests/
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -352,7 +352,7 @@ pytest --cov=cryptkeyper tests/
 5. Run the test suite
 6. Submit a pull request
 
-## 📄 License
+## License
 
 Licensed under either of:
 
@@ -361,7 +361,7 @@ Licensed under either of:
 
 at your option.
 
-## 🔗 Links
+## Links
 
 - [RFC 8391 - XMSS Specification](https://tools.ietf.org/rfc/rfc8391.txt)
 - [GitHub Repository](https://github.com/mluna030/CryptKeyPer)
@@ -370,4 +370,4 @@ at your option.
 
 ---
 
-**Ready for the quantum future? Start using post-quantum signatures today! 🚀**
+**Ready for the quantum future? Start using post-quantum signatures today!**
