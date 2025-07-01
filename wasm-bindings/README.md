@@ -2,7 +2,7 @@
 
 WebAssembly bindings for CryptKeyPer - A high-performance, RFC 8391 compliant XMSS (eXtended Merkle Signature Scheme) post-quantum cryptography implementation.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Browser (ES6 Modules)
 
@@ -80,7 +80,7 @@ async function quantumSafeApp() {
 }
 ```
 
-## 📋 Parameter Sets
+## Parameter Sets
 
 Choose the right parameter set for your use case:
 
@@ -96,7 +96,7 @@ Choose the right parameter set for your use case:
 | 7 | XMSS-SHAKE128-W16-H16 | SHAKE128 | 65,536 | 128-bit | Research/Alternative |
 | 8 | XMSS-SHAKE128-W16-H20 | SHAKE128 | 1,048,576 | 128-bit | Research/Alternative |
 
-## 🛡️ Security Features
+## Security Features
 
 - **Quantum-Resistant**: Secure against both classical and quantum computers
 - **RFC 8391 Compliant**: Follows official XMSS specification
@@ -104,7 +104,7 @@ Choose the right parameter set for your use case:
 - **One-Time Use**: Each signature uses a unique one-time key
 - **Hash-Based**: Security based on collision-resistant hash functions
 
-## 🔧 API Reference
+## API Reference
 
 ### `WasmXmssKeyPair`
 
@@ -120,7 +120,7 @@ class WasmXmssKeyPair {
     
     // Methods
     sign(message: Uint8Array): WasmXmssSignature;
-    export_private_key(): Uint8Array; // ⚠️ Use with extreme caution
+    export_private_key(): Uint8Array; // Use with extreme caution
 }
 ```
 
@@ -158,7 +158,7 @@ class WasmUtils {
 }
 ```
 
-## ⚡ Performance
+## Performance
 
 Approximate performance on modern hardware:
 
@@ -169,9 +169,9 @@ Approximate performance on modern hardware:
 | Verification | 0.1-10ms | Generally fast |
 | Signature Size | 2.5-9KB | Larger than classical schemes |
 
-## 🔐 Security Considerations
+## Security Considerations
 
-### ⚠️ Important Warnings
+### Important Warnings
 
 1. **State Management**: XMSS is stateful - never reuse signature indices
 2. **Key Storage**: Store private keys securely and back up state
@@ -181,27 +181,27 @@ Approximate performance on modern hardware:
 ### Best Practices
 
 ```typescript
-// ✅ Good: Secure seed generation
+// Good: Secure seed generation
 const seed = crypto.getRandomValues(new Uint8Array(32));
 
-// ❌ Bad: Predictable seed
+// Bad: Predictable seed
 const badSeed = new Uint8Array(32).fill(42);
 
-// ✅ Good: Check remaining signatures
+// Good: Check remaining signatures
 if (keyPair.remaining_signatures > 100) {
     const signature = keyPair.sign(message);
 } else {
     console.warn("Running low on signatures!");
 }
 
-// ✅ Good: Verify signatures
+// Good: Verify signatures
 const isValid = publicKey.verify(message, signature);
 if (!isValid) {
     throw new Error("Invalid signature detected!");
 }
 ```
 
-## 🧪 Examples
+## Examples
 
 ### Password-Based Key Derivation
 
@@ -246,7 +246,7 @@ function verifyMultipleSignatures(
 }
 ```
 
-## 🏗️ Building from Source
+## Building from Source
 
 ```bash
 # Install dependencies
@@ -262,7 +262,7 @@ wasm-pack build --target nodejs --scope cryptkeyper
 wasm-pack build --target bundler --scope cryptkeyper
 ```
 
-## 🔬 Testing
+## Testing
 
 ```bash
 # Run the demo
@@ -273,14 +273,14 @@ npm run serve
 # Then open http://localhost:8000
 ```
 
-## 📚 Learn More
+## Learn More
 
 - [RFC 8391 - XMSS Specification](https://tools.ietf.org/rfc/rfc8391.txt)
 - [Post-Quantum Cryptography FAQ](https://csrc.nist.gov/Projects/post-quantum-cryptography/faqs)
 - [NIST PQC Competition](https://csrc.nist.gov/Projects/post-quantum-cryptography)
 - [Quantum Computing Threat Timeline](https://globalriskinstitute.org/publications/2700-2/)
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -288,7 +288,7 @@ npm run serve
 4. Ensure all tests pass
 5. Submit a pull request
 
-## 📄 License
+## License
 
 Licensed under either of:
 
@@ -297,12 +297,12 @@ Licensed under either of:
 
 at your option.
 
-## 🆘 Support
+## Support
 
-- 📝 [GitHub Issues](https://github.com/mluna030/CryptKeyPer/issues)
-- 💬 [Discussions](https://github.com/mluna030/CryptKeyPer/discussions)
-- 📧 [Email Support](mailto:michael.angelo.luna1@gmail.com)
+- [GitHub Issues](https://github.com/mluna030/CryptKeyPer/issues)
+- [Discussions](https://github.com/mluna030/CryptKeyPer/discussions)
+- [Email Support](mailto:michael.angelo.luna1@gmail.com)
 
 ---
 
-**⚡ Ready for the quantum future? Start using post-quantum signatures today! ⚡**
+** Ready for the quantum future? Start using post-quantum signatures today! **
