@@ -1,9 +1,12 @@
 use crate::errors::{CryptKeyperError, Result};
 
-/// Generic hash function trait for XMSS
+/// Generic hash function trait for XMSS (object-safe)
 pub trait HashFunction: Send + Sync {
-    const OUTPUT_SIZE: usize;
-    const NAME: &'static str;
+    /// Get output size of the hash function
+    fn output_size(&self) -> usize;
+    
+    /// Get name of the hash function
+    fn name(&self) -> &'static str;
     
     /// Hash arbitrary length input
     fn hash(&self, data: &[u8]) -> Vec<u8>;
@@ -20,8 +23,8 @@ pub trait HashFunction: Send + Sync {
 pub struct Sha256HashFunction;
 
 impl HashFunction for Sha256HashFunction {
-    const OUTPUT_SIZE: usize = 32;
-    const NAME: &'static str = "SHA-256";
+    fn output_size(&self) -> usize { 32 }
+    fn name(&self) -> &'static str { "SHA-256" }
     
     fn hash(&self, data: &[u8]) -> Vec<u8> {
         use sha2::{Sha256, Digest};
@@ -72,8 +75,8 @@ impl HashFunction for Sha256HashFunction {
 pub struct Sha512HashFunction;
 
 impl HashFunction for Sha512HashFunction {
-    const OUTPUT_SIZE: usize = 64;
-    const NAME: &'static str = "SHA-512";
+    fn output_size(&self) -> usize { 64 }
+    fn name(&self) -> &'static str { "SHA-512" }
     
     fn hash(&self, data: &[u8]) -> Vec<u8> {
         use sha2::{Sha512, Digest};
@@ -121,15 +124,15 @@ impl HashFunction for Sha512HashFunction {
 pub struct Shake128HashFunction;
 
 impl HashFunction for Shake128HashFunction {
-    const OUTPUT_SIZE: usize = 32; // Can be variable, but we use 32 for consistency
-    const NAME: &'static str = "SHAKE128";
+    fn output_size(&self) -> usize { 32 } // Can be variable, but we use 32 for consistency
+    fn name(&self) -> &'static str { "SHAKE128" }
     
     fn hash(&self, data: &[u8]) -> Vec<u8> {
         use sha3::{Shake128, digest::{Update, ExtendableOutput, XofReader}};
         let mut hasher = Shake128::default();
         hasher.update(data);
         let mut reader = hasher.finalize_xof();
-        let mut output = vec![0u8; Self::OUTPUT_SIZE];
+        let mut output = vec![0u8; self.output_size()];
         reader.read(&mut output);
         output
     }
@@ -176,8 +179,21 @@ pub enum HashFunctionType {
 }
 
 impl HashFunction for HashFunctionType {
-    const OUTPUT_SIZE: usize = 32; // We'll use dynamic dispatch for this
-    const NAME: &'static str = "Dynamic";
+    fn output_size(&self) -> usize {
+        match self {
+            HashFunctionType::Sha256(_) => 32,
+            HashFunctionType::Sha512(_) => 64,
+            HashFunctionType::Shake128(_) => 32,
+        }
+    }
+    
+    fn name(&self) -> &'static str {
+        match self {
+            HashFunctionType::Sha256(_) => "SHA-256",
+            HashFunctionType::Sha512(_) => "SHA-512",
+            HashFunctionType::Shake128(_) => "SHAKE128",
+        }
+    }
     
     fn hash(&self, data: &[u8]) -> Vec<u8> {
         match self {
@@ -204,20 +220,3 @@ impl HashFunction for HashFunctionType {
     }
 }
 
-impl HashFunctionType {
-    pub fn output_size(&self) -> usize {
-        match self {
-            HashFunctionType::Sha256(_) => Sha256HashFunction::OUTPUT_SIZE,
-            HashFunctionType::Sha512(_) => Sha512HashFunction::OUTPUT_SIZE,
-            HashFunctionType::Shake128(_) => Shake128HashFunction::OUTPUT_SIZE,
-        }
-    }
-    
-    pub fn name(&self) -> &'static str {
-        match self {
-            HashFunctionType::Sha256(_) => Sha256HashFunction::NAME,
-            HashFunctionType::Sha512(_) => Sha512HashFunction::NAME,
-            HashFunctionType::Shake128(_) => Shake128HashFunction::NAME,
-        }
-    }
-}

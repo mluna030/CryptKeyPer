@@ -109,9 +109,15 @@ impl XmssOptimized {
         
         // Initialize caches with reasonable sizes
         let cache_size = std::cmp::min(1000, max_signatures / 100);
-        let leaf_cache = Arc::new(RwLock::new(LruCache::new(cache_size.try_into().unwrap_or(1000))));
-        let node_cache = Arc::new(RwLock::new(LruCache::new(cache_size.try_into().unwrap_or(1000))));
-        let auth_path_cache = Arc::new(RwLock::new(LruCache::new(cache_size.try_into().unwrap_or(100))));
+        let leaf_cache = Arc::new(RwLock::new(LruCache::new(
+            std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
+        )));
+        let node_cache = Arc::new(RwLock::new(LruCache::new(
+            std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
+        )));
+        let auth_path_cache = Arc::new(RwLock::new(LruCache::new(
+            std::num::NonZeroUsize::new(100).unwrap()
+        )));
         
         Ok(Self {
             public_key,
@@ -371,15 +377,84 @@ impl XmssOptimized {
             addr,
         );
         
-        // This would need proper WOTS+ verification - simplified for now
+        // Verify WOTS+ signature
         let is_wots_valid = wots.verify(&message_hash, &signature.wots_signature)?;
         if !is_wots_valid {
             return Ok(false);
         }
         
-        // Verify authentication path (simplified)
-        // In a full implementation, this would reconstruct the path to the root
-        Ok(true)
+        // Verify authentication path by reconstructing root
+        use crate::hash_traits::Sha256HashFunction;
+        let hash_function = Sha256HashFunction{}; // Use default for now
+        let computed_root = Self::verify_auth_path(
+            &wots.public_key_from_signature(&message_hash, &signature.wots_signature)?,
+            signature.index,
+            &signature.auth_path,
+            &public_key.pub_seed,
+            public_key.parameter_set.tree_height(),
+            &hash_function,
+        )?;
+        
+        // Compare computed root with stored root
+        Ok(computed_root == public_key.root)
+    }
+    
+    /// Verify authentication path by reconstructing the root
+    fn verify_auth_path(
+        leaf: &[u8],
+        leaf_index: u64,
+        auth_path: &[Vec<u8>],
+        pub_seed: &[u8; 32],
+        tree_height: u32,
+        hash_function: &dyn HashFunction,
+    ) -> Result<Vec<u8>> {
+        if auth_path.len() != tree_height as usize {
+            return Err(CryptKeyperError::ValidationError(
+                format!("Invalid authentication path length: expected {}, got {}", 
+                       tree_height, auth_path.len())
+            ));
+        }
+        
+        let mut current_node = leaf.to_vec();
+        let mut current_index = leaf_index;
+        
+        for (height, sibling) in auth_path.iter().enumerate() {
+            let mut addr = XmssAddress::new();
+            addr.set_tree_height(height as u32);
+            addr.set_tree_index(current_index >> 1);
+            addr.set_type(AddressType::HashTreeAddress);
+            
+            // Determine if current node is left or right child
+            if current_index & 1 == 0 {
+                // Current node is left child
+                current_node = Self::hash_h(&current_node, sibling, hash_function, pub_seed, &addr)?;
+            } else {
+                // Current node is right child
+                current_node = Self::hash_h(sibling, &current_node, hash_function, pub_seed, &addr)?;
+            }
+            
+            current_index >>= 1;
+        }
+        
+        Ok(current_node)
+    }
+    
+    
+    /// PRF function
+    fn prf(key: &[u8; 32], input: &[u8; 32]) -> Result<[u8; 32]> {
+        let mut data = Vec::with_capacity(64);
+        data.extend_from_slice(key);
+        data.extend_from_slice(input);
+        
+        use crate::hash_traits::Sha256HashFunction;
+        let hash = Sha256HashFunction::hash(&data);
+        if hash.len() != 32 {
+            return Err(CryptKeyperError::HashError("PRF hash size mismatch".to_string()));
+        }
+        
+        let mut result = [0u8; 32];
+        result.copy_from_slice(&hash);
+        Ok(result)
     }
     
     /// Get remaining signatures

@@ -288,7 +288,7 @@ impl VerificationContext {
         
         let winternitz_param = params.winternitz_parameter();
         let tree_height = params.tree_height();
-        let hash_size = params.hash_size();
+        let hash_size = params.output_size();
         
         let consistent = winternitz_param == 16 &&  // All current params use W=16
                         tree_height >= 10 &&        // Minimum reasonable height

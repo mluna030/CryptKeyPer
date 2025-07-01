@@ -77,9 +77,13 @@ impl OpenClXmssAccelerator {
 
     pub fn parallel_hash_batch(&self, inputs: &[&[u8]]) -> Result<Vec<Vec<u8>>> {
         if self.program.is_none() {
-            return Err(crate::errors::CryptKeyperError::HardwareError("OpenCL not initialized".to_string()));
+            // Fall back to software implementation when OpenCL is not available
+            use sha2::{Sha256, Digest};
+            return Ok(inputs.iter().map(|input| Sha256::digest(input).to_vec()).collect());
         }
 
+        // TODO: Implement actual OpenCL kernel execution
+        // For now, use software fallback even when OpenCL is available
         use sha2::{Sha256, Digest};
         Ok(inputs.iter().map(|input| Sha256::digest(input).to_vec()).collect())
     }

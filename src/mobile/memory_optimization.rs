@@ -26,7 +26,7 @@ struct CacheEntry<V> {
     memory_size: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct AccessStatistics {
     hits: u64,
     misses: u64,
@@ -374,36 +374,45 @@ impl SecureMemoryManager {
     }
     
     /// Allocate secure memory that will be zeroized on drop
-    pub fn allocate_secure(&mut self, size: usize) -> Result<SecureMemoryHandle> {
-        if self.total_secure_memory + size > self.max_secure_memory {
-            return Err(crate::errors::CryptKeyperError::InsufficientMemory(
-                "Secure memory limit exceeded".to_string()
-            ));
-        }
-        
-        let mut data = vec![0u8; size];
-        
-        // Use mlock if available to prevent swapping
-        #[cfg(unix)]
-        {
-            unsafe {
-                let ptr = data.as_mut_ptr();
-                libc::mlock(ptr as *const libc::c_void, size);
+    pub fn allocate_secure(manager: Arc<Mutex<Self>>, size: usize) -> Result<SecureMemoryHandle> {
+        let region_id = {
+            let mut mgr = manager.lock()
+                .map_err(|_| crate::errors::CryptKeyperError::MemoryError("Lock poisoned".to_string()))?;
+            
+            if mgr.total_secure_memory + size > mgr.max_secure_memory {
+                return Err(crate::errors::CryptKeyperError::InsufficientMemory(
+                    "Secure memory limit exceeded".to_string()
+                ));
             }
-        }
-        
-        let region_id = self.secure_regions.len();
-        self.secure_regions.push(SecureRegion {
-            data,
-            in_use: true,
-            creation_time: Instant::now(),
-        });
-        
-        self.total_secure_memory += size;
+            
+            let mut data = vec![0u8; size];
+            
+            // Use mlock if available to prevent swapping
+            #[cfg(all(unix, feature = "c-ffi"))]
+            {
+                unsafe {
+                    let ptr = data.as_mut_ptr();
+                    let result = libc::mlock(ptr as *const libc::c_void, size);
+                    if result != 0 {
+                        eprintln!("Warning: mlock failed for secure memory");
+                    }
+                }
+            }
+            
+            let region_id = mgr.secure_regions.len();
+            mgr.secure_regions.push(SecureRegion {
+                data,
+                in_use: true,
+                creation_time: Instant::now(),
+            });
+            
+            mgr.total_secure_memory += size;
+            region_id
+        };
         
         Ok(SecureMemoryHandle {
             region_id,
-            manager: self as *mut Self,
+            manager,
         })
     }
     
@@ -423,7 +432,7 @@ impl SecureMemoryManager {
                     *byte = 0;
                 }
                 
-                #[cfg(unix)]
+                #[cfg(all(unix, feature = "c-ffi"))]
                 {
                     unsafe {
                         let ptr = region.data.as_ptr();
@@ -441,28 +450,36 @@ impl SecureMemoryManager {
 /// Handle for secure memory that zeroizes on drop
 pub struct SecureMemoryHandle {
     region_id: usize,
-    manager: *mut SecureMemoryManager,
+    manager: Arc<Mutex<SecureMemoryManager>>,
 }
 
 impl SecureMemoryHandle {
     /// Get mutable access to the secure memory
-    pub fn as_mut_slice(&mut self) -> Option<&mut [u8]> {
-        unsafe {
-            (*self.manager).get_secure_mut(self.region_id)
+    pub fn with_mut_slice<F, R>(&self, f: F) -> Result<R>
+    where
+        F: FnOnce(&mut [u8]) -> R,
+    {
+        let mut manager = self.manager.lock()
+            .map_err(|_| crate::errors::CryptKeyperError::MemoryError("Lock poisoned".to_string()))?;
+        
+        if let Some(slice) = manager.get_secure_mut(self.region_id) {
+            Ok(f(slice))
+        } else {
+            Err(crate::errors::CryptKeyperError::MemoryError("Invalid region".to_string()))
         }
     }
 }
 
 impl Drop for SecureMemoryHandle {
     fn drop(&mut self) {
-        unsafe {
-            (*self.manager).deallocate_secure(self.region_id);
+        if let Ok(mut manager) = self.manager.lock() {
+            manager.deallocate_secure(self.region_id);
         }
     }
 }
 
-// Safety: SecureMemoryHandle is only safe to send if the manager outlives it
-unsafe impl Send for SecureMemoryHandle {}
+// Safe to send since we use proper synchronization
+impl Send for SecureMemoryHandle {}
 
 #[cfg(test)]
 mod tests {

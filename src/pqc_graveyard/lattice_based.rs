@@ -28,16 +28,16 @@ impl ExperimentalPQScheme for Tesla {
         }
     }
     
-    fn keygen() -> Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
+    fn keygen() -> std::result::Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
         // Simplified TESLA key generation
         todo!("Implement TESLA keygen - interesting for research")
     }
     
-    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> Result<Self::Signature, Self::Error> {
+    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> std::result::Result<Self::Signature, Self::Error> {
         todo!("Implement TESLA signing")
     }
     
-    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> Result<bool, Self::Error> {
+    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> std::result::Result<bool, Self::Error> {
         todo!("Implement TESLA verification")
     }
     
@@ -89,15 +89,15 @@ impl ExperimentalPQScheme for QTesla {
         }
     }
     
-    fn keygen() -> Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
+    fn keygen() -> std::result::Result<(Self::PublicKey, Self::PrivateKey), Self::Error> {
         todo!("Implement qTESLA keygen")
     }
     
-    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> Result<Self::Signature, Self::Error> {
+    fn sign(_message: &[u8], _private_key: &Self::PrivateKey) -> std::result::Result<Self::Signature, Self::Error> {
         todo!("Implement qTESLA signing")
     }
     
-    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> Result<bool, Self::Error> {
+    fn verify(_message: &[u8], _signature: &Self::Signature, _public_key: &Self::PublicKey) -> std::result::Result<bool, Self::Error> {
         todo!("Implement qTESLA verification")
     }
     

@@ -128,32 +128,10 @@ impl<H: HashFunction> SimdHashFunction<H> {
         
         let mut results = Vec::with_capacity(inputs.len());
         
-        // Process in chunks of 16 for optimal AVX-512 utilization
-        for chunk in inputs.chunks(16) {
-            if chunk.len() == 16 {
-                unsafe {
-                    let input_array: &[&[u8]; 16] = chunk.try_into().unwrap();
-                    let batch_results = simd_sha256::avx512_sha256_x16(input_array);
-                    results.extend(batch_results.into_iter());
-                }
-            } else {
-                // Partial chunk - fall back to smaller SIMD or sequential
-                if chunk.len() >= 8 {
-                    let (first_8, remainder) = chunk.split_at(8);
-                    unsafe {
-                        let input_array: &[&[u8]; 8] = first_8.try_into().unwrap();
-                        let batch_results = simd_sha256::avx2_sha256_x8(input_array);
-                        results.extend(batch_results.into_iter());
-                    }
-                    for input in remainder {
-                        results.push(self.inner.hash(input));
-                    }
-                } else {
-                    for input in chunk {
-                        results.push(self.inner.hash(input));
-                    }
-                }
-            }
+        // Safe fallback implementation - SIMD functions not yet implemented
+        // TODO: Implement actual SIMD optimizations when available
+        for input in inputs {
+            results.push(self.inner.hash(input));
         }
         
         results
@@ -167,28 +145,9 @@ impl<H: HashFunction> SimdHashFunction<H> {
         
         let mut results = Vec::with_capacity(inputs.len());
         
-        for chunk in inputs.chunks(8) {
-            if chunk.len() == 8 {
-                unsafe {
-                    let input_array: &[&[u8]; 8] = chunk.try_into().unwrap();
-                    let batch_results = simd_sha256::avx2_sha256_x8(input_array);
-                    results.extend(batch_results.into_iter());
-                }
-            } else if chunk.len() >= 4 {
-                let (first_4, remainder) = chunk.split_at(4);
-                unsafe {
-                    let input_array: &[&[u8]; 4] = first_4.try_into().unwrap();
-                    let batch_results = simd_sha256::intel_sha_sha256_x4(input_array);
-                    results.extend(batch_results.into_iter());
-                }
-                for input in remainder {
-                    results.push(self.inner.hash(input));
-                }
-            } else {
-                for input in chunk {
-                    results.push(self.inner.hash(input));
-                }
-            }
+        // Safe fallback implementation - SIMD functions not yet implemented
+        for input in inputs {
+            results.push(self.inner.hash(input));
         }
         
         results
@@ -196,52 +155,14 @@ impl<H: HashFunction> SimdHashFunction<H> {
     
     #[cfg(target_arch = "x86_64")]
     fn intel_sha_batch_hash(&self, inputs: &[&[u8]]) -> Vec<Vec<u8>> {
-        if !self.capabilities.has_intel_sha {
-            return inputs.iter().map(|input| self.inner.hash(input)).collect();
-        }
-        
-        let mut results = Vec::with_capacity(inputs.len());
-        
-        for chunk in inputs.chunks(4) {
-            if chunk.len() == 4 {
-                unsafe {
-                    let input_array: &[&[u8]; 4] = chunk.try_into().unwrap();
-                    let batch_results = simd_sha256::intel_sha_sha256_x4(input_array);
-                    results.extend(batch_results.into_iter());
-                }
-            } else {
-                for input in chunk {
-                    results.push(self.inner.hash(input));
-                }
-            }
-        }
-        
-        results
+        // Safe fallback - Intel SHA extensions not yet implemented
+        inputs.iter().map(|input| self.inner.hash(input)).collect()
     }
     
     #[cfg(target_arch = "aarch64")]
     fn neon_batch_hash(&self, inputs: &[&[u8]]) -> Vec<Vec<u8>> {
-        if !self.capabilities.has_neon {
-            return inputs.iter().map(|input| self.inner.hash(input)).collect();
-        }
-        
-        let mut results = Vec::with_capacity(inputs.len());
-        
-        for chunk in inputs.chunks(4) {
-            if chunk.len() == 4 {
-                unsafe {
-                    let input_array: &[&[u8]; 4] = chunk.try_into().unwrap();
-                    let batch_results = simd_sha256::neon_sha256_x4(input_array);
-                    results.extend(batch_results.into_iter());
-                }
-            } else {
-                for input in chunk {
-                    results.push(self.inner.hash(input));
-                }
-            }
-        }
-        
-        results
+        // Safe fallback - NEON optimizations not yet implemented
+        inputs.iter().map(|input| self.inner.hash(input)).collect()
     }
     
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
@@ -410,8 +331,8 @@ pub mod intel_sha {
     pub struct IntelShaHashFunction;
     
     impl HashFunction for IntelShaHashFunction {
-        const OUTPUT_SIZE: usize = 32;
-        const NAME: &'static str = "Intel-SHA";
+        fn output_size(&self) -> usize { 32 }
+        fn name(&self) -> &'static str { "Intel-SHA" }
         
         fn hash(&self, data: &[u8]) -> Vec<u8> {
             // Use Intel SHA extensions for hardware-accelerated hashing

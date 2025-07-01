@@ -50,7 +50,9 @@ impl WotsPlusOptimized {
             private_seed: Arc::new(private_seed),
             pub_seed: Arc::new(pub_seed),
             address,
-            key_cache: Arc::new(RwLock::new(LruCache::new(cache_size.try_into().unwrap_or(1000)))),
+            key_cache: Arc::new(RwLock::new(LruCache::new(
+                std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
+            ))),
         }
     }
     
@@ -177,9 +179,9 @@ impl WotsPlusOptimized {
     
     /// Sign a message with WOTS+
     pub fn sign(&self, message: &[u8]) -> Result<Vec<Vec<u8>>> {
-        if message.len() != self.hash_function.hash_size() {
+        if message.len() != self.hash_function.output_size() {
             return Err(CryptKeyperError::InvalidMessageLength {
-                expected: self.hash_function.hash_size(),
+                expected: self.hash_function.output_size(),
                 actual: message.len(),
             });
         }
@@ -212,9 +214,9 @@ impl WotsPlusOptimized {
     
     /// Verify a WOTS+ signature with constant-time comparison
     pub fn verify(&self, message: &[u8], signature: &[Vec<u8>]) -> Result<bool> {
-        if message.len() != self.hash_function.hash_size() {
+        if message.len() != self.hash_function.output_size() {
             return Err(CryptKeyperError::InvalidMessageLength {
-                expected: self.hash_function.hash_size(),
+                expected: self.hash_function.output_size(),
                 actual: message.len(),
             });
         }
@@ -254,6 +256,38 @@ impl WotsPlusOptimized {
         }
         
         Ok(verification_result.into())
+    }
+    
+    /// Derive public key from signature
+    pub fn public_key_from_signature(&self, message: &[u8], signature: &[Vec<u8>]) -> Result<Vec<u8>> {
+        if message.len() != self.hash_function.output_size() {
+            return Err(CryptKeyperError::InvalidMessageLength {
+                expected: self.hash_function.output_size(),
+                actual: message.len(),
+            });
+        }
+        
+        let base_w_msg = self.params.message_to_base_w_with_checksum(message);
+        let mut public_key_elements = Vec::new();
+        
+        for (i, (&steps, sig_component)) in base_w_msg.iter().zip(signature.iter()).enumerate() {
+            let mut addr = self.address;
+            addr.set_chain_address(i as u32);
+            addr.set_hash_address(steps);
+            
+            // Chain from signature to public key element
+            let remaining_steps = self.params.w - 1 - steps;
+            let pk_element = self.chain(
+                sig_component.clone(),
+                steps,
+                remaining_steps,
+                &addr,
+            )?;
+            
+            public_key_elements.extend_from_slice(&pk_element);
+        }
+        
+        Ok(public_key_elements)
     }
     
     /// Get the public key for this WOTS+ instance

@@ -1,8 +1,9 @@
 use crate::hash_traits::{HashFunction, HashFunctionType, Sha256HashFunction, Sha512HashFunction, Shake128HashFunction};
 use crate::errors::{CryptKeyperError, Result};
+use serde::{Serialize, Deserialize};
 
 /// XMSS Parameter Sets following RFC 8391 and NIST recommendations
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum XmssParameterSet {
     // SHA-256 based parameter sets
     XmssSha256W16H10,
@@ -44,7 +45,7 @@ impl XmssParameterSet {
     }
     
     /// Get the hash output size in bytes
-    pub fn hash_size(self) -> usize {
+    pub fn output_size(self) -> usize {
         match self {
             Self::XmssSha256W16H10 | Self::XmssSha256W16H16 | Self::XmssSha256W16H20 => 32,
             Self::XmssSha512W16H10 | Self::XmssSha512W16H16 | Self::XmssSha512W16H20 => 64,
@@ -63,7 +64,7 @@ impl XmssParameterSet {
         };
         
         // For 256-bit hash output (32 bytes)
-        let len1 = if self.hash_size() == 32 {
+        let len1 = if self.output_size() == 32 {
             (8 * 32 + log_w - 1) / log_w  // ceil(256 / log_w)
         } else {
             (8 * 64 + log_w - 1) / log_w  // ceil(512 / log_w) for SHA-512
@@ -187,7 +188,7 @@ impl WotsParameters {
 }
 
 /// Multi-tree XMSS parameter sets (XMSS^MT)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum XmssMtParameterSet {
     // SHA-256 based MT parameter sets
     XmssMtSha256W16H20D2,  // Height 20, 2 layers

@@ -31,6 +31,24 @@ pub enum CryptKeyperError {
     
     #[error("Authentication path verification failed")]
     AuthPathVerificationFailed,
+    
+    #[error("Hardware acceleration error: {0}")]
+    HardwareError(String),
+    
+    #[error("Memory allocation error: {0}")]
+    MemoryError(String),
+    
+    #[error("Input validation failed: {0}")]
+    ValidationError(String),
+    
+    #[error("Cryptographic operation failed: {0}")]
+    CryptographicError(String),
+    
+    #[error("Configuration error: {0}")]
+    ConfigurationError(String),
+    
+    #[error("Insufficient memory: {0}")]
+    InsufficientMemory(String),
 }
 
 pub type Result<T> = std::result::Result<T, CryptKeyperError>;

@@ -5,12 +5,14 @@ use crate::hash_function::hash_function::Sha256HashFunction;
 use crate::xmss::address::XmssAddress;
 use crate::errors::{CryptKeyperError, Result};
 
-/// WOTS+ parameters
+/// WOTS+ parameters following RFC 8391
 const WOTS_W: u32 = 16; // Winternitz parameter (4, 16, or 256)
 const WOTS_LOG_W: u32 = 4; // log2(WOTS_W)
 const WOTS_LEN1: usize = 64; // ceil(256 / log2(w)) for SHA-256
-const WOTS_LEN2: usize = 3;  // floor(log2(len1 * (w-1)) / log2(w)) + 1
-const WOTS_LEN: usize = WOTS_LEN1 + WOTS_LEN2; // Total length
+// Correct RFC 8391 calculation: floor(log2(len1 * (w-1)) / log2(w)) + 1
+// For w=16, len1=64: floor(log2(64 * 15) / 4) + 1 = floor(log2(960) / 4) + 1 = floor(9.9 / 4) + 1 = 2 + 1 = 3
+const WOTS_LEN2: usize = 3;  // Correct for w=16, len1=64
+const WOTS_LEN: usize = WOTS_LEN1 + WOTS_LEN2; // Total length = 67
 
 /// WOTS+ One-Time Signature implementation following RFC 8391
 #[derive(Clone, ZeroizeOnDrop)]
@@ -100,38 +102,51 @@ impl WotsPlus {
         Ok(x)
     }
 
-    /// Convert message to base-w representation with checksum
+    /// Convert message to base-w representation with checksum (RFC 8391 compliant)
     pub fn base_w(msg: &[u8; 32]) -> Vec<u32> {
         let mut result = Vec::with_capacity(WOTS_LEN);
         let mut csum = 0u32;
         
-        // Convert message to base-w
-        for byte in msg {
-            let mut b = *byte;
-            for _ in 0..(8 / WOTS_LOG_W) {
-                let digit = (b & ((1 << WOTS_LOG_W) - 1)) as u32;
-                result.push(digit);
-                csum += WOTS_W - 1 - digit;
-                b >>= WOTS_LOG_W;
-            }
+        // Convert message to base-w (RFC 8391: process bytes left-to-right, bits within bytes right-to-left)
+        for &byte in msg.iter() {
+            // Process 2 digits per byte for w=16 (4 bits each)
+            let high_digit = ((byte >> 4) & 0x0F) as u32;
+            let low_digit = (byte & 0x0F) as u32;
+            
+            result.push(high_digit);
+            csum += WOTS_W - 1 - high_digit;
+            
+            result.push(low_digit);
+            csum += WOTS_W - 1 - low_digit;
         }
         
-        // Add checksum
-        let csum_bytes = (csum << (8 - ((WOTS_LEN2 * WOTS_LOG_W as usize) % 8))).to_be_bytes();
-        let csum_len = (WOTS_LEN2 * WOTS_LOG_W as usize + 7) / 8;
+        // Convert checksum to base-w (RFC 8391 compliant)
+        // Total checksum bits needed: WOTS_LEN2 * WOTS_LOG_W = 3 * 4 = 12 bits
+        let csum_bits = 12;
+        let csum_bytes_needed = (csum_bits + 7) / 8; // 2 bytes for 12 bits
         
-        for i in 0..csum_len {
-            let mut b = csum_bytes[i + (4 - csum_len)];
-            for _ in 0..(8 / WOTS_LOG_W) {
-                if result.len() >= WOTS_LEN {
-                    break;
-                }
-                let digit = (b & ((1 << WOTS_LOG_W) - 1)) as u32;
-                result.push(digit);
-                b >>= WOTS_LOG_W;
-            }
+        // Left-shift checksum to align with byte boundaries
+        let csum_shifted = csum << (16 - csum_bits); // Shift to use top 12 bits of 16-bit value
+        let csum_bytes = csum_shifted.to_be_bytes();
+        
+        // Extract checksum digits (3 digits of 4 bits each)
+        for i in 0..WOTS_LEN2 {
+            let bit_offset = i * 4;
+            let byte_index = bit_offset / 8;
+            let bit_pos = bit_offset % 8;
+            
+            let digit = if bit_pos == 0 {
+                // Digit is in high nibble
+                (csum_bytes[byte_index] >> 4) & 0x0F
+            } else {
+                // Digit is in low nibble  
+                csum_bytes[byte_index] & 0x0F
+            };
+            
+            result.push(digit as u32);
         }
         
+        // Ensure we have exactly WOTS_LEN elements
         result.truncate(WOTS_LEN);
         result
     }

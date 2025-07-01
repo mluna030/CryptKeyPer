@@ -112,14 +112,13 @@ impl NeonHashAccelerator {
         }
     }
     
-    /// Hardware-accelerated SHA-256 using ARMv8 crypto extensions
+    /// Software SHA-256 fallback (ARM crypto extensions not yet implemented)
     #[cfg(all(target_arch = "aarch64", target_feature = "crypto"))]
     unsafe fn crypto_sha256_x4(&self, inputs: &[&[u8]; 4]) -> [Vec<u8>; 4] {
-        // Use ARM crypto extensions for hardware SHA-256
-        // vsha256hq_u32, vsha256h2q_u32, vsha256su0q_u32, vsha256su1q_u32
+        // TODO: Implement ARM crypto extensions for hardware SHA-256
+        // Would use: vsha256hq_u32, vsha256h2q_u32, vsha256su0q_u32, vsha256su1q_u32
         
-        // For now, fall back to software implementation
-        // A real implementation would use the crypto intrinsics
+        // Software fallback implementation
         use sha2::{Sha256, Digest};
         [
             Sha256::digest(inputs[0]).to_vec(),

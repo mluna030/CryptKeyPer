@@ -215,7 +215,7 @@ impl MobileBenchmark {
     /// Check if performance meets mobile requirements
     pub fn meets_mobile_requirements(&self) -> MobileCompatibility {
         let mut issues = Vec::new();
-        let mut score = 10.0;
+        let mut score: f32 = 10.0;
         
         // Check timing requirements
         if self.sign_time_ms > 100.0 {

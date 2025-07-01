@@ -65,6 +65,10 @@ impl XmssAddress {
         self.address_type = AddressType::LTreeAddress;
         self.ots_address = ltree_address;
     }
+    
+    pub fn set_type(&mut self, address_type: AddressType) {
+        self.address_type = address_type;
+    }
 
     /// Convert address to bytes for hashing
     pub fn to_bytes(&self) -> [u8; 32] {
