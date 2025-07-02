@@ -9,6 +9,9 @@ use crate::parameters::{WotsParameters, XmssParameterSet};
 use crate::xmss::address::XmssAddress;
 use crate::errors::{CryptKeyperError, Result};
 
+type WotsKeyCache = Arc<RwLock<LruCache<u32, CachedWotsKey>>>;
+type WotsKeyPair = (Vec<Vec<u8>>, Vec<Vec<u8>>);
+
 /// Optimized WOTS+ implementation with lazy key generation and caching
 #[derive(Clone)]
 pub struct WotsPlusOptimized {
@@ -19,7 +22,7 @@ pub struct WotsPlusOptimized {
     address: XmssAddress,
     
     // Cache for generated keys (thread-safe)
-    key_cache: Arc<RwLock<LruCache<u32, CachedWotsKey>>>,
+    key_cache: WotsKeyCache,
 }
 
 /// Cached WOTS+ key with both private and public components
@@ -131,7 +134,7 @@ impl WotsPlusOptimized {
     }
     
     /// Generate full WOTS+ key pair (all chains)
-    pub fn generate_full_keypair(&self) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>)> {
+    pub fn generate_full_keypair(&self) -> Result<WotsKeyPair> {
         let mut private_keys = Vec::with_capacity(self.params.len);
         let mut public_keys = Vec::with_capacity(self.params.len);
         
@@ -305,7 +308,7 @@ impl WotsPlusOptimized {
     /// Get cache statistics
     pub fn cache_stats(&self) -> (usize, usize) {
         let cache = self.key_cache.read();
-        (cache.len(), cache.cap().try_into().unwrap_or(0))
+        (cache.len(), cache.cap().into())
     }
 }
 

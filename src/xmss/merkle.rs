@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::hash_function::hash_function::Sha256HashFunction;
+use crate::hash_function::Sha256HashFunction;
 use crate::xmss::address::XmssAddress;
 use crate::errors::{CryptKeyperError, Result};
 
@@ -39,7 +39,7 @@ impl MerkleTree {
                 let right = if i + 1 < current_layer.len() {
                     current_layer[i + 1]
                 } else {
-                    left // Duplicate if odd number
+                    left // Duplicate if odd
                 };
                 
                 let hashed = Self::hash_h(&left, &right, pub_seed, &addr)?;

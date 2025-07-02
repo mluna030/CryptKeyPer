@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use cryptkeyper::{
     XmssParameterSet, 
-    xmss::xmss::Xmss,
+    xmss::Xmss,
     xmss::xmss_optimized::XmssOptimized,
     parameters::WotsParameters,
 };

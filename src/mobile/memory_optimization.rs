@@ -117,8 +117,8 @@ where
         let key_to_evict = cache
             .iter()
             .min_by(|a, b| {
-                let score_a = self.calculate_eviction_score(&a.1);
-                let score_b = self.calculate_eviction_score(&b.1);
+                let score_a = self.calculate_eviction_score(a.1);
+                let score_b = self.calculate_eviction_score(b.1);
                 score_a.partial_cmp(&score_b).unwrap()
             })
             .map(|(k, _)| k.clone());
@@ -246,8 +246,7 @@ impl MobileMemoryPool {
         }
         
         // Allocate new block
-        let mut block = Vec::with_capacity(size);
-        block.resize(size, 0);
+        let block = vec![0; size];
         self.total_allocated += size;
         block
     }

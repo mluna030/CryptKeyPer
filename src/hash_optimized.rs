@@ -191,6 +191,12 @@ impl<H: HashFunction> SimdHashFunction<H> {
 pub mod simd_sha256 {
     
     /// AVX2 8-way parallel SHA-256 
+    ///
+    /// # Safety
+    /// This function is unsafe because it is intended to use AVX2 intrinsics,
+    /// which operate on raw pointers and require specific CPU features to be enabled.
+    /// The caller must ensure that the target CPU supports AVX2 and that the `inputs`
+    /// array contains valid pointers to memory that can be safely read.
     #[cfg(target_arch = "x86_64")]
     pub unsafe fn avx2_sha256_x8(inputs: &[&[u8]; 8]) -> [Vec<u8>; 8] {
         #[cfg(target_feature = "avx2")]
@@ -226,6 +232,13 @@ pub mod simd_sha256 {
     }
     
     /// AVX-512 16-way parallel SHA-256
+    ///
+    /// # Safety
+    /// This function is unsafe because it is intended to use AVX-512 intrinsics,
+    /// which operate on raw pointers and require specific CPU features to be enabled.
+    /// The caller must ensure that the target CPU supports AVX-512 and that the `inputs`
+    /// array contains valid pointers to memory that can be safely read.
+    /// It also calls `avx2_sha256_x8` which is an unsafe function.
     #[cfg(target_arch = "x86_64")]
     pub unsafe fn avx512_sha256_x16(inputs: &[&[u8]; 16]) -> [Vec<u8>; 16] {
         #[cfg(target_feature = "avx512f")]
@@ -264,6 +277,12 @@ pub mod simd_sha256 {
     }
     
     /// Intel SHA extensions accelerated SHA-256
+    ///
+    /// # Safety
+    /// This function is unsafe because it is intended to use Intel SHA intrinsics,
+    /// which operate on raw pointers and require specific CPU features to be enabled.
+    /// The caller must ensure that the target CPU supports Intel SHA extensions and that the `inputs`
+    /// array contains valid pointers to memory that can be safely read.
     #[cfg(target_arch = "x86_64")]
     pub unsafe fn intel_sha_sha256_x4(inputs: &[&[u8]; 4]) -> [Vec<u8>; 4] {
         #[cfg(target_feature = "sha")]
@@ -291,6 +310,12 @@ pub mod simd_sha256 {
     }
     
     /// ARM NEON 4-way parallel SHA-256
+    ///
+    /// # Safety
+    /// This function is unsafe because it is intended to use ARM NEON intrinsics,
+    /// which operate on raw pointers and require specific CPU features to be enabled.
+    /// The caller must ensure that the target CPU supports NEON and that the `inputs`
+    /// array contains valid pointers to memory that can be safely read.
     #[cfg(target_arch = "aarch64")]
     pub unsafe fn neon_sha256_x4(inputs: &[&[u8]; 4]) -> [Vec<u8>; 4] {
         #[cfg(target_feature = "neon")]
@@ -375,6 +400,13 @@ pub mod intel_sha {
     }
     
     /// SIMD XOR operation for bitmask application
+    ///
+    /// # Safety
+    /// This function is unsafe because it uses AVX2 intrinsics directly.
+    /// The caller must ensure that:
+    /// - The target CPU supports AVX2.
+    /// - `data` and `mask` are at least 32 bytes long and are properly aligned for AVX2 operations.
+    /// - The memory regions pointed to by `data` and `mask` are valid and can be safely read and written to.
     #[cfg(target_feature = "avx2")]
     unsafe fn simd_xor(data: &mut [u8], mask: &[u8]) {
         use std::arch::x86_64::*;

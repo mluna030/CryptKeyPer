@@ -143,7 +143,7 @@ impl PowerManager {
                 use_all_cores: false,
                 use_simd: false,
                 batch_size: 1,
-                memory_cache_size: 1 * 1024 * 1024, // 1MB
+                memory_cache_size: 1024 * 1024, // 1MB
                 allow_background_tasks: false,
                 operation_timeout_ms: 60000,
             },
@@ -328,7 +328,13 @@ impl PowerManager {
             ThermalState::Critical => -4.0,
         };
         
-        (base_score + thermal_penalty).max(0.0).min(10.0)
+        (base_score + thermal_penalty).clamp(0.0, 10.0)
+    }
+}
+
+impl Default for PowerManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

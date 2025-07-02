@@ -123,7 +123,7 @@ pub use hash_traits::{HashFunction, Sha256HashFunction, Sha512HashFunction, Shak
 pub use state_management::{SecureStateManager, BackupInfo};
 
 // Original implementations
-pub use xmss::xmss::{Xmss, XmssSignature, XmssPublicKey};
+pub use xmss::{Xmss, XmssSignature, XmssPublicKey};
 
 // Optimized implementations
 pub use xmss::xmss_optimized::{XmssOptimized, XmssSignatureOptimized, XmssPublicKeyOptimized};
@@ -136,9 +136,9 @@ pub fn add(left: usize, right: usize) -> usize
 {
     left + right
 }
-pub fn create_xmss(height: u32) -> Result<xmss::xmss::Xmss> 
+pub fn create_xmss(height: u32) -> Result<xmss::Xmss> 
 {
-    xmss::xmss::Xmss::new(height)
+    xmss::Xmss::new(height)
 }
 
 #[cfg(test)]

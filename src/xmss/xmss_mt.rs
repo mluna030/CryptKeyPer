@@ -8,7 +8,9 @@ use crate::hash_traits::HashFunction;
 use crate::parameters::{XmssMtParameterSet, XmssParameterSet};
 use crate::xmss::xmss_optimized::{XmssOptimized, XmssSignatureOptimized, XmssPublicKeyOptimized};
 use crate::errors::{CryptKeyperError, Result};
-use crate::random_key_generator::random_key_generator::OsRandomKeyGenerator;
+use crate::random_key_generator::OsRandomKeyGenerator;
+
+type TreeCache = Arc<RwLock<HashMap<(u32, u64), Arc<XmssOptimized>>>>;
 
 /// XMSS^MT (Multi-Tree) signature containing signatures from multiple layers
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,7 +75,7 @@ pub struct XmssMt {
     /// Global signature counter
     signature_counter: AtomicU64,
     /// Tree cache for performance
-    tree_cache: Arc<RwLock<HashMap<(u32, u64), Arc<XmssOptimized>>>>,
+    tree_cache: TreeCache,
 }
 
 impl XmssMt {
@@ -147,8 +149,8 @@ impl XmssMt {
         let mut layer_seed = *master_seed;
         
         // Mix in layer and tree index
-        for i in 0..32 {
-            layer_seed[i] ^= ((layer as u64).wrapping_add(tree_index) >> (i % 8)) as u8;
+        for (i, byte) in layer_seed.iter_mut().enumerate() {
+            *byte ^= ((layer as u64).wrapping_add(tree_index) >> (i % 8)) as u8;
         }
         
         // Create XMSS instance with derived seed
@@ -214,8 +216,8 @@ impl XmssMt {
         // Sign from bottom layer to top layer
         for layer in 0..layers {
             // Calculate which tree in this layer
-            let tree_index = (signature_index as u64) / (signatures_per_tree.pow(layer));
-            let _index_in_tree = (signature_index as u64) % signatures_per_tree;
+            let tree_index = signature_index / (signatures_per_tree.pow(layer));
+            let _index_in_tree = signature_index % signatures_per_tree;
             
             // Get the tree for this layer
             let tree = self.get_or_create_tree(layer, tree_index)?;

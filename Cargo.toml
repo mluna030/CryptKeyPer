@@ -21,6 +21,7 @@ sha3 = "0.10"  # For SHAKE128/256 support
 hmac = "0.12"
 hex = "0.4"
 base64 = "0.22.1"
+num-integer = "0.1.45"
 
 # Error handling and security
 thiserror = "1.0"
@@ -53,7 +54,7 @@ console_error_panic_hook = { version = "0.1", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 
 # Python bindings
-pyo3 = { version = "0.20", features = ["extension-module"], optional = true }
+pyo3 = { version = "0.24.1", features = ["extension-module"], optional = true }
 
 # C FFI
 libc = { version = "0.2", optional = true }

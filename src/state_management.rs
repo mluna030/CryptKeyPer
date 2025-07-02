@@ -339,7 +339,7 @@ impl SecureStateManager {
             let entry = entry.map_err(|e| CryptKeyperError::InvalidParameter(format!("Directory entry error: {}", e)))?;
             let path = entry.path();
             
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "enc") {
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "enc") {
                 if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
                     if let Some(backup_info) = self.parse_backup_filename(filename, path.clone()) {
                         backups.push(backup_info);

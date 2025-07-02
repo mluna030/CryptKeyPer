@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 use zeroize::ZeroizeOnDrop;
 
-use crate::hash_function::hash_function::Sha256HashFunction;
+use crate::hash_function::Sha256HashFunction;
 use crate::xmss::address::XmssAddress;
 use crate::errors::{CryptKeyperError, Result};
 
@@ -10,7 +10,7 @@ const WOTS_W: u32 = 16; // Winternitz parameter (4, 16, or 256)
 
 const WOTS_LEN1: usize = 64; // ceil(256 / log2(w)) for SHA-256
 // Correct RFC 8391 calculation: floor(log2(len1 * (w-1)) / log2(w)) + 1
-// For w=16, len1=64: floor(log2(64 * 15) / 4) + 1 = floor(log2(960) / 4) + 1 = floor(9.9 / 4) + 1 = 2 + 1 = 3
+// For w=16, len1=64: floor(log2(64 * 15) / 4) + 1 = floor(9.9 / 4) + 1 = 2 + 1 = 3
 const WOTS_LEN2: usize = 3;  // Correct for w=16, len1=64
 const WOTS_LEN: usize = WOTS_LEN1 + WOTS_LEN2; // Total length = 67
 
@@ -162,8 +162,8 @@ impl WotsPlus {
             addr.set_chain_address(i as u32);
             addr.set_hash_address(0);
             
-            let sig_i = Self::chain(self.private_key[i], 0, digit, pub_seed, &addr)?;
-            signature.push(sig_i);
+            let sig_component = Self::chain(self.private_key[i], 0, digit, pub_seed, &addr)?;
+            signature.push(sig_component);
         }
         
         Ok(signature)

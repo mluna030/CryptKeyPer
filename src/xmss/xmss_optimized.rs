@@ -8,8 +8,11 @@ use crate::hash_traits::HashFunction;
 use crate::parameters::{XmssParameterSet};
 use crate::xmss::address::{XmssAddress, AddressType};
 use crate::xmss::wots_optimized::WotsPlusOptimized;
+use crate::random_key_generator::OsRandomKeyGenerator;
 use crate::errors::{CryptKeyperError, Result};
-use crate::random_key_generator::random_key_generator::OsRandomKeyGenerator;
+
+type NodeCache = Arc<RwLock<LruCache<(u32, u64), Vec<u8>>>>;
+type AuthPathCache = Arc<RwLock<LruCache<u64, Vec<Vec<u8>>>>>;
 
 /// Optimized XMSS signature
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,9 +61,9 @@ pub struct XmssOptimized {
     /// Cache for WOTS+ public keys (leaf nodes)
     leaf_cache: Arc<RwLock<LruCache<u64, Vec<u8>>>>,
     /// Cache for tree nodes
-    node_cache: Arc<RwLock<LruCache<(u32, u64), Vec<u8>>>>,
+    node_cache: NodeCache,
     /// Cache for authentication paths
-    auth_path_cache: Arc<RwLock<LruCache<u64, Vec<Vec<u8>>>>>,
+    auth_path_cache: AuthPathCache,
 }
 
 // Manual implementation of Debug for XmssOptimized
@@ -97,7 +100,7 @@ impl XmssOptimized {
             &parameter_set, 
             &private_seed, 
             &pub_seed, 
-            parameter_set.tree_height() as u32,
+            parameter_set.tree_height(),
             &*hash_function,
         )?;
         
@@ -114,7 +117,7 @@ impl XmssOptimized {
         }));
         
         // Initialize caches with reasonable sizes
-        let cache_size = std::cmp::min(1000, (max_signatures as usize).try_into().unwrap_or(1000usize) / 100);
+        let cache_size = std::cmp::min(1000, max_signatures as usize / 100);
         let leaf_cache = Arc::new(RwLock::new(LruCache::new(
             std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
         )));
@@ -148,7 +151,7 @@ impl XmssOptimized {
         let max_signatures = parameter_set.max_signatures();
 
         // Initialize caches with reasonable sizes
-        let cache_size = std::cmp::min(1000, (max_signatures as usize).try_into().unwrap_or(1000usize) / 100);
+        let cache_size = std::cmp::min(1000, max_signatures as usize / 100);
         let leaf_cache = Arc::new(RwLock::new(LruCache::new(
             std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
         )));
@@ -311,7 +314,7 @@ impl XmssOptimized {
     }
     
     /// Generate authentication path for a given leaf index
-    fn generate_auth_path(&self, leaf_index: u64) -> Result<Vec<Vec<u8>>> {
+    pub fn generate_auth_path(&self, leaf_index: u64) -> Result<Vec<Vec<u8>>> {
         // Check cache first
         {
             let cache = self.auth_path_cache.read();

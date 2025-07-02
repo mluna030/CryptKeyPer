@@ -227,14 +227,12 @@ impl NeonHashAccelerator {
         let len = src.len();
         let chunks = len / 16;
         
-        // Copy 16 bytes at a time using NEON
         for i in 0..chunks {
             let offset = i * 16;
             let data = vld1q_u8(src.as_ptr().add(offset));
             vst1q_u8(dst.as_mut_ptr().add(offset), data);
         }
         
-        // Copy remaining bytes
         let remaining = len % 16;
         if remaining > 0 {
             let start = chunks * 16;
@@ -267,6 +265,12 @@ impl NeonHashAccelerator {
                 AccelerationLevel::None => PowerEfficiency::Poor,
             },
         }
+    }
+}
+
+impl Default for NeonHashAccelerator {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

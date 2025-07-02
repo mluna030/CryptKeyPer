@@ -1,5 +1,6 @@
 use crate::hash_traits::{HashFunctionType, Sha256HashFunction, Sha512HashFunction, Shake128HashFunction};
 use serde::{Serialize, Deserialize};
+use num_integer::div_ceil;
 
 /// XMSS Parameter Sets following RFC 8391 and NIST recommendations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,10 +24,7 @@ pub enum XmssParameterSet {
 impl XmssParameterSet {
     /// Get the Winternitz parameter for this parameter set
     pub fn winternitz_parameter(self) -> u32 {
-        match self {
-            // All current parameter sets use W=16
-            _ => 16,
-        }
+        16
     }
     
     /// Get the tree height for this parameter set
@@ -64,14 +62,14 @@ impl XmssParameterSet {
         
         // For 256-bit hash output (32 bytes)
         let len1 = if self.output_size() == 32 {
-            (8 * 32 + log_w - 1) / log_w  // ceil(256 / log_w)
+            div_ceil(8 * 32, log_w) as usize // ceil(256 / log_w)
         } else {
-            (8 * 64 + log_w - 1) / log_w  // ceil(512 / log_w) for SHA-512
+            div_ceil(8 * 64, log_w) as usize // ceil(512 / log_w) for SHA-512
         };
         
         let len2 = {
-            let max_checksum = len1 * (w - 1);
-            ((log_w as f64) * (max_checksum as f64).log2().ceil()).ceil() as u32 / log_w + 1
+            let max_checksum = len1 * ((w - 1) as usize);
+            div_ceil(((log_w as f64) * (max_checksum as f64).log2().ceil()) as u32, log_w) as usize + 1
         };
         
         WotsParameters {
