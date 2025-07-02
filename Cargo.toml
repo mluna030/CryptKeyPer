@@ -53,7 +53,7 @@ console_error_panic_hook = { version = "0.1", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 
 # Python bindings
-pyo3 = { version = "0.20", features = ["extension-module"], optional = true }
+pyo3 = { version = "0.24", features = ["extension-module"], optional = true }
 
 # C FFI
 libc = { version = "0.2", optional = true }
