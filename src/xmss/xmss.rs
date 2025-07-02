@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use zeroize::ZeroizeOnDrop;
+use serde::{Serialize, Deserialize};
 
 use crate::hash_function::hash_function::Sha256HashFunction;
 use crate::random_key_generator::random_key_generator::OsRandomKeyGenerator;
@@ -9,7 +10,7 @@ use crate::xmss::address::{XmssAddress, AddressType};
 use crate::errors::{CryptKeyperError, Result};
 
 /// XMSS Signature
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct XmssSignature {
     pub index: u32,
     pub wots_signature: Vec<[u8; 32]>,
@@ -17,7 +18,7 @@ pub struct XmssSignature {
 }
 
 /// XMSS Public Key
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct XmssPublicKey {
     pub root: [u8; 32],
     pub pub_seed: [u8; 32],
@@ -37,7 +38,6 @@ pub struct Xmss {
     pub public_key: XmssPublicKey,
     private_state: XmssPrivateState,
     merkle_tree: MerkleTree,
-    
 }
 
 impl Xmss {

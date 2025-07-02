@@ -34,14 +34,12 @@ pub struct XmssPublicKeyOptimized {
 }
 
 /// Private key state (encrypted when stored)
-#[derive(Serialize, Deserialize, ZeroizeOnDrop)]
-struct XmssPrivateState {
+#[derive(Debug, Clone, Serialize, Deserialize, ZeroizeOnDrop)]
+pub struct XmssPrivateState {
     private_seed: [u8; 32],
     signature_index: u64,
     max_signatures: u64,
 }
-
-
 
 /// Optimized XMSS implementation with lazy key generation and caching
 pub struct XmssOptimized {
@@ -51,10 +49,8 @@ pub struct XmssOptimized {
     private_state: Arc<RwLock<XmssPrivateState>>,
     /// Parameter set
     parameter_set: XmssParameterSet,
-    /// WOTS+ parameters
-    
     /// Hash function
-    hash_function: Arc<dyn HashFunction>,
+    hash_function: Arc<dyn HashFunction + Send + Sync>,
     /// Signature counter (atomic for thread safety)
     signature_counter: AtomicU64,
     
@@ -67,6 +63,22 @@ pub struct XmssOptimized {
     auth_path_cache: Arc<RwLock<LruCache<u64, Vec<Vec<u8>>>>>,
 }
 
+// Manual implementation of Debug for XmssOptimized
+impl std::fmt::Debug for XmssOptimized {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("XmssOptimized")
+            .field("public_key", &self.public_key)
+            .field("private_state", &self.private_state)
+            .field("parameter_set", &self.parameter_set)
+            // Skip hash_function as it does not implement Debug
+            .field("signature_counter", &self.signature_counter)
+            .field("leaf_cache", &self.leaf_cache)
+            .field("node_cache", &self.node_cache)
+            .field("auth_path_cache", &self.auth_path_cache)
+            .finish()
+    }
+}
+
 impl XmssOptimized {
     /// Create new optimized XMSS instance
     pub fn new(parameter_set: XmssParameterSet) -> Result<Self> {
@@ -77,7 +89,6 @@ impl XmssOptimized {
         let pub_seed: [u8; 32] = master_seed[32..64].try_into()
             .map_err(|_| CryptKeyperError::KeyGenerationError("Public seed generation failed".to_string()))?;
         
-        
         let hash_function = Arc::new(parameter_set.create_hash_function());
         let max_signatures = parameter_set.max_signatures();
         
@@ -86,7 +97,8 @@ impl XmssOptimized {
             &parameter_set, 
             &private_seed, 
             &pub_seed, 
-            parameter_set.tree_height() as u32
+            parameter_set.tree_height() as u32,
+            &*hash_function,
         )?;
         
         let public_key = XmssPublicKeyOptimized {
@@ -102,7 +114,7 @@ impl XmssOptimized {
         }));
         
         // Initialize caches with reasonable sizes
-        let cache_size = std::cmp::min(1000, max_signatures.try_into().unwrap_or(1000usize) / 100);
+        let cache_size = std::cmp::min(1000, (max_signatures as usize).try_into().unwrap_or(1000usize) / 100);
         let leaf_cache = Arc::new(RwLock::new(LruCache::new(
             std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
         )));
@@ -124,17 +136,61 @@ impl XmssOptimized {
             auth_path_cache,
         })
     }
+
+    /// Reconstructs an XmssOptimized instance from its public key and private state.
+    /// This is primarily for API usage where state is passed between requests.
+    pub fn from_parts(
+        public_key: XmssPublicKeyOptimized,
+        private_state: XmssPrivateState,
+    ) -> Result<Self> {
+        let parameter_set = public_key.parameter_set; // Get parameter_set before public_key is moved
+        let hash_function = Arc::new(parameter_set.create_hash_function());
+        let max_signatures = parameter_set.max_signatures();
+
+        // Initialize caches with reasonable sizes
+        let cache_size = std::cmp::min(1000, (max_signatures as usize).try_into().unwrap_or(1000usize) / 100);
+        let leaf_cache = Arc::new(RwLock::new(LruCache::new(
+            std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
+        )));
+        let node_cache = Arc::new(RwLock::new(LruCache::new(
+            std::num::NonZeroUsize::new(cache_size).unwrap_or(std::num::NonZeroUsize::new(1000).unwrap())
+        )));
+        let auth_path_cache = Arc::new(RwLock::new(LruCache::new(
+            std::num::NonZeroUsize::new(100).unwrap()
+        )));
+
+        Ok(Self {
+            public_key,
+            private_state: Arc::new(RwLock::new(private_state)),
+            parameter_set,
+            hash_function,
+            signature_counter: AtomicU64::new(0), // This will be updated by the private_state
+            leaf_cache,
+            node_cache,
+            auth_path_cache,
+        })
+    }
     
+    /// Get a reference to the private state
+    pub fn private_state(&self) -> &Arc<RwLock<XmssPrivateState>> {
+        &self.private_state
+    }
+
+    /// Get a reference to the parameter set
+    pub fn parameter_set(&self) -> &XmssParameterSet {
+        &self.parameter_set
+    }
+
     /// Compute tree root lazily (only compute what's needed)
     fn compute_root_lazy(
-        parameter_set: &XmssParameterSet,
-        private_seed: &[u8; 32],
-        pub_seed: &[u8; 32],
+        parameter_set: &XmssParameterSet, 
+        private_seed: &[u8; 32], 
+        pub_seed: &[u8; 32], 
         height: u32,
+        hash_function: &dyn HashFunction,
     ) -> Result<Vec<u8>> {
         // For demo purposes, compute just the first few leaves and estimate root
         // In a full implementation, this would use a more sophisticated approach
-        let hash_function = parameter_set.create_hash_function();
         
         // Generate first leaf to establish root structure
         let mut addr = XmssAddress::new();
@@ -144,7 +200,7 @@ impl XmssOptimized {
         let public_key = wots.public_key()?;
         
         // Compress WOTS+ public key to leaf using L-tree
-        let leaf = Self::ltree(&public_key, &hash_function, pub_seed, &addr)?;
+        let leaf = Self::ltree(&public_key, hash_function, pub_seed, &addr)?;
         
         // For height 1, root is just the leaf
         if height == 1 {
@@ -160,7 +216,7 @@ impl XmssOptimized {
             tree_addr.set_tree_index(0);
             
             // Simulate tree computation
-            current = Self::hash_h(&current, &current, &hash_function, pub_seed, &tree_addr)?;
+            current = Self::hash_h(&current, &current, hash_function, pub_seed, &tree_addr)?;
         }
         
         Ok(current)
@@ -431,9 +487,6 @@ impl XmssOptimized {
         
         Ok(current_node)
     }
-    
-    
-    
     
     /// Get remaining signatures
     pub fn remaining_signatures(&self) -> u64 {

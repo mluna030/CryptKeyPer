@@ -97,3 +97,9 @@ formal-verification = []
 
 # Build profiles
 no-std = []
+
+[workspace]
+members = [
+    ".",
+    "cryptkeyper-api",
+]
