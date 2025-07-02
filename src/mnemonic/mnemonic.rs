@@ -81,8 +81,8 @@ impl MnemonicSeed {
         let blocks = (output_len + hlen - 1) / hlen;
         
         for block in 1..=blocks {
-            let mut u = vec![0u8; hlen];
-            let mut f = vec![0u8; hlen];
+            let mut u;
+            let mut f;
             
             let mut mac = <M as Mac>::new_from_slice(password)
                 .map_err(|_| CryptKeyperError::CryptographicError("HMAC key error".to_string()))?;

@@ -81,7 +81,7 @@ pub mod fpga_xmss {
     
     impl FpgaXmss {
         /// Hardware-accelerated WOTS+ chain computation
-        pub fn hw_wots_chain(&self, input: &[u8], iterations: u32) -> Result<Vec<u8>> {
+        pub fn hw_wots_chain(&self, _input: &[u8], _iterations: u32) -> Result<Vec<u8>> {
             if !self.hardware_ctx.bitstream_loaded {
                 return Err(crate::errors::CryptKeyperError::InvalidParameter(
                     "FPGA bitstream not loaded".to_string()
@@ -93,7 +93,7 @@ pub mod fpga_xmss {
         }
         
         /// Parallel Merkle tree computation on FPGA
-        pub fn hw_merkle_tree(&self, leaves: &[Vec<u8>]) -> Result<Vec<u8>> {
+        pub fn hw_merkle_tree(&self, _leaves: &[Vec<u8>]) -> Result<Vec<u8>> {
             // Compute entire Merkle tree in parallel on FPGA
             todo!("Implement FPGA Merkle tree computation")
         }

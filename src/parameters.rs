@@ -1,4 +1,4 @@
-use crate::hash_traits::{HashFunction, HashFunctionType, Sha256HashFunction, Sha512HashFunction, Shake128HashFunction};
+use crate::hash_traits::{HashFunctionType, Sha256HashFunction, Sha512HashFunction, Shake128HashFunction};
 use serde::{Serialize, Deserialize};
 
 /// XMSS Parameter Sets following RFC 8391 and NIST recommendations

@@ -143,16 +143,7 @@ impl NeonHashAccelerator {
         ]
     }
     
-    /// Fallback to scalar implementation
-    unsafe fn scalar_sha256_x4(&self, inputs: &[&[u8]; 4]) -> [Vec<u8>; 4] {
-        use sha2::{Sha256, Digest};
-        [
-            Sha256::digest(inputs[0]).to_vec(),
-            Sha256::digest(inputs[1]).to_vec(),
-            Sha256::digest(inputs[2]).to_vec(),
-            Sha256::digest(inputs[3]).to_vec(),
-        ]
-    }
+    
     
     /// NEON-optimized XOR operations for bitmask application
     #[cfg(target_arch = "aarch64")]

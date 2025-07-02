@@ -1,6 +1,6 @@
 use rand::rngs::OsRng;
 use rand::RngCore;
-use base64::encode;
+use base64::{engine::general_purpose, Engine as _};
 
 pub struct OsRandomKeyGenerator;
 
@@ -14,7 +14,7 @@ impl OsRandomKeyGenerator {
 
     pub fn generate_hex_key(size: usize) -> String 
     {
-        encode(&OsRandomKeyGenerator::generate_key(size))
+        general_purpose::STANDARD.encode(&OsRandomKeyGenerator::generate_key(size))
     }
 }
 

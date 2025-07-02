@@ -37,7 +37,7 @@ pub struct Xmss {
     pub public_key: XmssPublicKey,
     private_state: XmssPrivateState,
     merkle_tree: MerkleTree,
-    height: u32,
+    
 }
 
 impl Xmss {
@@ -90,7 +90,6 @@ impl Xmss {
             public_key,
             private_state,
             merkle_tree,
-            height,
         })
     }
 

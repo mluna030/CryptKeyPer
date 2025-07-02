@@ -35,19 +35,19 @@ pub enum ThermalState {
 struct OperationHistory {
     recent_operations: Vec<OperationRecord>,
     total_energy_used: f64, // mJ (millijoules)
-    start_time: Instant,
+    _start_time: Instant,
 }
 
 #[derive(Debug, Clone)]
 struct OperationRecord {
-    operation_type: OperationType,
-    duration: Duration,
+    _operation_type: OperationType,
+    _duration: Duration,
     estimated_energy: f64, // mJ
     timestamp: Instant,
 }
 
 #[derive(Debug, Clone, Copy)]
-enum OperationType {
+pub enum OperationType {
     KeyGeneration,
     Signing,
     Verification,
@@ -63,7 +63,7 @@ impl PowerManager {
             operation_history: OperationHistory {
                 recent_operations: Vec::new(),
                 total_energy_used: 0.0,
-                start_time: Instant::now(),
+                _start_time: Instant::now(),
             },
         }
     }
@@ -235,8 +235,8 @@ impl PowerManager {
     /// Record completed operation for power analysis
     pub fn record_operation(&mut self, operation: OperationType, duration: Duration, actual_energy: f64) {
         let record = OperationRecord {
-            operation_type: operation,
-            duration,
+            _operation_type: operation,
+            _duration: duration,
             estimated_energy: actual_energy,
             timestamp: Instant::now(),
         };

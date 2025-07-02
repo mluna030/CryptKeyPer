@@ -27,7 +27,7 @@ struct CacheEntry<V> {
 }
 
 #[derive(Debug, Default, Clone)]
-struct AccessStatistics {
+pub struct AccessStatistics {
     hits: u64,
     misses: u64,
     evictions: u64,
@@ -361,7 +361,7 @@ pub struct SecureMemoryManager {
 struct SecureRegion {
     data: Vec<u8>,
     in_use: bool,
-    creation_time: Instant,
+    _creation_time: Instant,
 }
 
 impl SecureMemoryManager {
@@ -403,7 +403,7 @@ impl SecureMemoryManager {
             mgr.secure_regions.push(SecureRegion {
                 data,
                 in_use: true,
-                creation_time: Instant::now(),
+                _creation_time: Instant::now(),
             });
             
             mgr.total_secure_memory += size;

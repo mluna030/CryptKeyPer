@@ -74,7 +74,7 @@ impl OpenClXmssAccelerator {
         Ok(program)
     }
 
-    pub fn parallel_hash_batch(&self, inputs: &[&[u8]]) -> Result<Vec<Vec<u8>>> {
+    pub fn parallel_hash_batch(&self, _inputs: &[&[u8]]) -> Result<Vec<Vec<u8>>> {
         if self.program.is_none() {
             // Fall back to software implementation when OpenCL is not available
             use sha2::{Sha256, Digest};
@@ -108,7 +108,7 @@ impl OpenClXmssAccelerator {
         Ok(Self)
     }
 
-    pub fn parallel_hash_batch(&self, inputs: &[&[u8]]) -> Result<Vec<Vec<u8>>> {
+    pub fn parallel_hash_batch(&self, _inputs: &[&[u8]]) -> Result<Vec<Vec<u8>>> {
         Err(crate::errors::CryptKeyperError::HardwareError(
             "OpenCL support not compiled in".to_string()
         ))
@@ -153,7 +153,7 @@ impl OpenClDeviceInfo {
 
 #[cfg(not(feature = "opencl"))]
 impl OpenClDeviceInfo {
-    fn from_device(_device: &()) -> Self {
+    fn _from_device(_device: &()) -> Self {
         Self {
             name: "OpenCL not available".to_string(),
             vendor: "N/A".to_string(),

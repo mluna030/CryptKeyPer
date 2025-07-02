@@ -7,7 +7,7 @@ use crate::errors::{CryptKeyperError, Result};
 
 /// WOTS+ parameters following RFC 8391
 const WOTS_W: u32 = 16; // Winternitz parameter (4, 16, or 256)
-const WOTS_LOG_W: u32 = 4; // log2(WOTS_W)
+
 const WOTS_LEN1: usize = 64; // ceil(256 / log2(w)) for SHA-256
 // Correct RFC 8391 calculation: floor(log2(len1 * (w-1)) / log2(w)) + 1
 // For w=16, len1=64: floor(log2(64 * 15) / 4) + 1 = floor(log2(960) / 4) + 1 = floor(9.9 / 4) + 1 = 2 + 1 = 3
@@ -123,7 +123,7 @@ impl WotsPlus {
         // Convert checksum to base-w (RFC 8391 compliant)
         // Total checksum bits needed: WOTS_LEN2 * WOTS_LOG_W = 3 * 4 = 12 bits
         let csum_bits = 12;
-        let csum_bytes_needed = (csum_bits + 7) / 8; // 2 bytes for 12 bits
+        
         
         // Left-shift checksum to align with byte boundaries
         let csum_shifted = csum << (16 - csum_bits); // Shift to use top 12 bits of 16-bit value

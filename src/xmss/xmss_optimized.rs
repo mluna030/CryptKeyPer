@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use zeroize::ZeroizeOnDrop;
 
 use crate::hash_traits::HashFunction;
-use crate::parameters::{XmssParameterSet, WotsParameters};
+use crate::parameters::{XmssParameterSet};
 use crate::xmss::address::{XmssAddress, AddressType};
 use crate::xmss::wots_optimized::WotsPlusOptimized;
 use crate::errors::{CryptKeyperError, Result};
@@ -41,13 +41,7 @@ struct XmssPrivateState {
     max_signatures: u64,
 }
 
-/// Cached tree node for faster authentication path generation
-#[derive(Clone)]
-struct CachedTreeNode {
-    value: Vec<u8>,
-    height: u32,
-    index: u64,
-}
+
 
 /// Optimized XMSS implementation with lazy key generation and caching
 pub struct XmssOptimized {
@@ -58,7 +52,7 @@ pub struct XmssOptimized {
     /// Parameter set
     parameter_set: XmssParameterSet,
     /// WOTS+ parameters
-    wots_params: WotsParameters,
+    
     /// Hash function
     hash_function: Arc<dyn HashFunction>,
     /// Signature counter (atomic for thread safety)
@@ -83,7 +77,7 @@ impl XmssOptimized {
         let pub_seed: [u8; 32] = master_seed[32..64].try_into()
             .map_err(|_| CryptKeyperError::KeyGenerationError("Public seed generation failed".to_string()))?;
         
-        let wots_params = parameter_set.wots_params();
+        
         let hash_function = Arc::new(parameter_set.create_hash_function());
         let max_signatures = parameter_set.max_signatures();
         
@@ -123,7 +117,6 @@ impl XmssOptimized {
             public_key,
             private_state,
             parameter_set,
-            wots_params,
             hash_function,
             signature_counter: AtomicU64::new(0),
             leaf_cache,
@@ -440,23 +433,7 @@ impl XmssOptimized {
     }
     
     
-    /// PRF function
-    fn prf(key: &[u8; 32], input: &[u8; 32]) -> Result<[u8; 32]> {
-        let mut data = Vec::with_capacity(64);
-        data.extend_from_slice(key);
-        data.extend_from_slice(input);
-        
-        use crate::hash_traits::Sha256HashFunction;
-        let hash_fn = Sha256HashFunction;
-        let hash = hash_fn.hash(&data);
-        if hash.len() != 32 {
-            return Err(CryptKeyperError::HashError("PRF hash size mismatch".to_string()));
-        }
-        
-        let mut result = [0u8; 32];
-        result.copy_from_slice(&hash);
-        Ok(result)
-    }
+    
     
     /// Get remaining signatures
     pub fn remaining_signatures(&self) -> u64 {

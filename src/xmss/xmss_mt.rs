@@ -36,13 +36,13 @@ pub struct XmssMtPublicKey {
 // #[derive(ZeroizeOnDrop)] // Commented out due to trait bound issues
 struct XmssTreeLayer {
     /// XMSS instance for this layer
-    xmss: XmssOptimized,
+    _xmss: XmssOptimized,
     /// Layer index (0 = bottom layer)
-    layer_index: u32,
+    _layer_index: u32,
     /// Tree index within this layer
-    tree_index: u64,
+    _tree_index: u64,
     /// Whether this tree is exhausted
-    exhausted: bool,
+    _exhausted: bool,
 }
 
 /// XMSS^MT state management
@@ -65,7 +65,7 @@ pub struct XmssMt {
     /// Parameter set
     parameter_set: XmssMtParameterSet,
     /// Hash function
-    hash_function: Arc<dyn HashFunction>,
+    _hash_function: Arc<dyn HashFunction>,
     /// Private state
     private_state: Arc<RwLock<XmssMtState>>,
     /// Active trees for each layer
@@ -87,7 +87,7 @@ impl XmssMt {
             .map_err(|_| CryptKeyperError::KeyGenerationError("Public seed generation failed".to_string()))?;
         
         let layers = parameter_set.layers();
-        let tree_height = parameter_set.tree_height();
+        let _tree_height = parameter_set.tree_height();
         let max_signatures = parameter_set.max_signatures();
         
         // Initialize current tree indices
@@ -127,7 +127,7 @@ impl XmssMt {
         Ok(Self {
             public_key,
             parameter_set,
-            hash_function,
+            _hash_function: hash_function,
             private_state,
             active_trees,
             signature_counter: AtomicU64::new(0),
@@ -140,7 +140,7 @@ impl XmssMt {
         layer: u32,
         tree_index: u64,
         master_seed: &[u8; 32],
-        pub_seed: &[u8; 32],
+        _pub_seed: &[u8; 32],
         xmss_params: XmssParameterSet,
     ) -> Result<XmssOptimized> {
         // Derive layer-specific seed
@@ -215,7 +215,7 @@ impl XmssMt {
         for layer in 0..layers {
             // Calculate which tree in this layer
             let tree_index = (signature_index as u64) / (signatures_per_tree.pow(layer));
-            let index_in_tree = (signature_index as u64) % signatures_per_tree;
+            let _index_in_tree = (signature_index as u64) % signatures_per_tree;
             
             // Get the tree for this layer
             let tree = self.get_or_create_tree(layer, tree_index)?;
