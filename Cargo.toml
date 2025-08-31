@@ -99,6 +99,9 @@ formal-verification = []
 # Build profiles
 no-std = []
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [workspace]
 members = [
     ".",
