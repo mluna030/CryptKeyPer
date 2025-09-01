@@ -8,7 +8,10 @@ use aes_gcm::{Aes256Gcm, KeyInit, Nonce, aead::Aead};
 use scrypt::{scrypt, Params as ScryptParams};
 use serde::{Serialize, Deserialize};
 use zeroize::ZeroizeOnDrop;
+#[cfg(feature = "parking_lot")]
 use parking_lot::{RwLock, Mutex};
+#[cfg(not(feature = "parking_lot"))]
+use std::sync::{RwLock, Mutex};
 
 use crate::errors::{CryptKeyperError, Result};
 
@@ -114,7 +117,10 @@ impl SecureStateManager {
         
         // Store encryption key
         {
+            #[cfg(feature = "parking_lot")]
             let mut encryption_key = self.encryption_key.write();
+            #[cfg(not(feature = "parking_lot"))]
+            let mut encryption_key = self.encryption_key.write().unwrap();
             *encryption_key = Some(key);
         }
         

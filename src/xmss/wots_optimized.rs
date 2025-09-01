@@ -1,5 +1,8 @@
 use std::sync::Arc;
+#[cfg(feature = "parking_lot")]
 use parking_lot::RwLock;
+#[cfg(not(feature = "parking_lot"))]
+use std::sync::RwLock;
 use lru::LruCache;
 use subtle::{Choice, ConstantTimeEq};
 use zeroize::ZeroizeOnDrop;

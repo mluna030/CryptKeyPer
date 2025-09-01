@@ -1,5 +1,8 @@
 use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
+#[cfg(feature = "parking_lot")]
 use parking_lot::RwLock;
+#[cfg(not(feature = "parking_lot"))]
+use std::sync::RwLock;
 use lru::LruCache;
 use serde::{Serialize, Deserialize};
 use zeroize::ZeroizeOnDrop;
