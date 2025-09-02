@@ -4,6 +4,28 @@ use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
 use parking_lot::RwLock;
 #[cfg(not(feature = "parking_lot"))]
 use std::sync::RwLock;
+
+// Helper functions to handle RwLock API differences
+#[cfg(feature = "parking_lot")]
+fn read_lock<T>(lock: &parking_lot::RwLock<T>) -> parking_lot::RwLockReadGuard<T> {
+    lock.read()
+}
+
+#[cfg(not(feature = "parking_lot"))]
+fn read_lock<T>(lock: &std::sync::RwLock<T>) -> std::sync::RwLockReadGuard<T> {
+    lock.read().unwrap()
+}
+
+#[cfg(feature = "parking_lot")]
+fn write_lock<T>(lock: &parking_lot::RwLock<T>) -> parking_lot::RwLockWriteGuard<T> {
+    lock.write()
+}
+
+#[cfg(not(feature = "parking_lot"))]
+fn write_lock<T>(lock: &std::sync::RwLock<T>) -> std::sync::RwLockWriteGuard<T> {
+    lock.write().unwrap()
+}
+
 use serde::{Serialize, Deserialize};
 use zeroize::ZeroizeOnDrop;
 
@@ -167,14 +189,14 @@ impl XmssMt {
     fn get_or_create_tree(&self, layer: u32, tree_index: u64) -> Result<Arc<XmssOptimized>> {
         // Check cache first
         {
-            let cache = self.tree_cache.read();
+            let cache = read_lock(&self.tree_cache);
             if let Some(cached_tree) = cache.get(&(layer, tree_index)) {
                 return Ok(cached_tree.clone());
             }
         }
         
         // Create new tree
-        let private_state = self.private_state.read();
+        let private_state = read_lock(&self.private_state);
         let xmss_params = XmssParameterSet::XmssSha256W16H10; // Standard params for all layers
         
         let tree = Self::create_tree_for_layer(
@@ -189,7 +211,7 @@ impl XmssMt {
         
         // Cache the tree
         {
-            let mut cache = self.tree_cache.write();
+            let mut cache = write_lock(&self.tree_cache);
             cache.insert((layer, tree_index), tree_arc.clone());
         }
         
@@ -202,7 +224,7 @@ impl XmssMt {
         
         // Check if we have signatures remaining
         {
-            let private_state = self.private_state.read();
+            let private_state = read_lock(&self.private_state);
             if signature_index as u128 >= private_state.max_signatures {
                 return Err(CryptKeyperError::NoMoreSignatures);
             }
@@ -299,7 +321,7 @@ impl XmssMt {
     
     /// Get remaining signatures
     pub fn remaining_signatures(&self) -> u128 {
-        let private_state = self.private_state.read();
+        let private_state = read_lock(&self.private_state);
         let current_index = self.signature_counter.load(Ordering::SeqCst) as u128;
         private_state.max_signatures.saturating_sub(current_index)
     }
@@ -316,7 +338,7 @@ impl XmssMt {
     
     /// Advance to next tree in a specific layer (for tree exhaustion)
     pub fn advance_tree_in_layer(&self, layer: u32) -> Result<()> {
-        let mut private_state = self.private_state.write();
+        let mut private_state = write_lock(&self.private_state);
         
         if layer as usize >= private_state.current_tree_indices.len() {
             return Err(CryptKeyperError::InvalidParameter(
@@ -328,7 +350,7 @@ impl XmssMt {
         
         // Remove exhausted tree from active trees
         {
-            let mut active_trees = self.active_trees.write();
+            let mut active_trees = write_lock(&self.active_trees);
             active_trees.remove(&layer);
         }
         
@@ -337,11 +359,11 @@ impl XmssMt {
     
     /// Get statistics about the multi-tree structure
     pub fn get_statistics(&self) -> XmssMtStatistics {
-        let private_state = self.private_state.read();
+        let private_state = read_lock(&self.private_state);
         let current_index = self.signature_counter.load(Ordering::SeqCst) as u128;
         
-        let active_trees = self.active_trees.read();
-        let cache = self.tree_cache.read();
+        let active_trees = read_lock(&self.active_trees);
+        let cache = read_lock(&self.tree_cache);
         
         XmssMtStatistics {
             total_signatures: private_state.max_signatures,
@@ -357,7 +379,7 @@ impl XmssMt {
     
     /// Clear tree cache to free memory
     pub fn clear_cache(&self) {
-        let mut cache = self.tree_cache.write();
+        let mut cache = write_lock(&self.tree_cache);
         cache.clear();
     }
 }

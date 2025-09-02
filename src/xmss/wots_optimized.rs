@@ -3,6 +3,28 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 #[cfg(not(feature = "parking_lot"))]
 use std::sync::RwLock;
+
+// Helper functions to handle RwLock API differences
+#[cfg(feature = "parking_lot")]
+fn read_lock<T>(lock: &parking_lot::RwLock<T>) -> parking_lot::RwLockReadGuard<T> {
+    lock.read()
+}
+
+#[cfg(not(feature = "parking_lot"))]
+fn read_lock<T>(lock: &std::sync::RwLock<T>) -> std::sync::RwLockReadGuard<T> {
+    lock.read().unwrap()
+}
+
+#[cfg(feature = "parking_lot")]
+fn write_lock<T>(lock: &parking_lot::RwLock<T>) -> parking_lot::RwLockWriteGuard<T> {
+    lock.write()
+}
+
+#[cfg(not(feature = "parking_lot"))]
+fn write_lock<T>(lock: &std::sync::RwLock<T>) -> std::sync::RwLockWriteGuard<T> {
+    lock.write().unwrap()
+}
+
 use lru::LruCache;
 use subtle::{Choice, ConstantTimeEq};
 use zeroize::ZeroizeOnDrop;
@@ -12,7 +34,7 @@ use crate::parameters::{WotsParameters, XmssParameterSet};
 use crate::xmss::address::XmssAddress;
 use crate::errors::{CryptKeyperError, Result};
 
-type WotsKeyCache = Arc<RwLock<LruCache<u32, CachedWotsKey>>>;
+type WotsKeyCache = Arc<RwLock<LruCache<u32, CachedWotsChain>>>;
 type WotsKeyPair = (Vec<Vec<u8>>, Vec<Vec<u8>>);
 
 /// Optimized WOTS+ implementation with lazy key generation and caching
@@ -28,12 +50,12 @@ pub struct WotsPlusOptimized {
     key_cache: WotsKeyCache,
 }
 
-/// Cached WOTS+ key with both private and public components
+/// Cached WOTS+ single chain key
 #[derive(Clone, ZeroizeOnDrop)]
-struct CachedWotsKey {
+struct CachedWotsChain {
     #[zeroize(skip)]
-    public_key: Vec<Vec<u8>>,
-    private_key: Vec<Vec<u8>>,
+    public_key: Vec<u8>,
+    private_key: Vec<u8>,
 }
 
 impl WotsPlusOptimized {
@@ -66,11 +88,11 @@ impl WotsPlusOptimized {
     fn generate_chain_lazy(&self, chain_index: u32) -> Result<(Vec<u8>, Vec<u8>)> {
         // Check cache first
         {
-            let cache = self.key_cache.read();
-            if let Some(cached_key) = cache.peek(&chain_index) {
+            let cache = read_lock(&self.key_cache);
+            if let Some(cached_chain) = cache.peek(&chain_index) {
                 return Ok((
-                    cached_key.private_key[chain_index as usize].clone(),
-                    cached_key.public_key[chain_index as usize].clone(),
+                    cached_chain.private_key.clone(),
+                    cached_chain.public_key.clone(),
                 ));
             }
         }
@@ -91,6 +113,16 @@ impl WotsPlusOptimized {
             &addr,
         )?;
         
+        // Cache this chain
+        {
+            let cached_chain = CachedWotsChain {
+                private_key: private_key.clone(),
+                public_key: public_key.clone(),
+            };
+            let mut cache = write_lock(&self.key_cache);
+            cache.put(chain_index, cached_chain);
+        }
+        
         Ok((private_key, public_key))
     }
     
@@ -110,6 +142,12 @@ impl WotsPlusOptimized {
         let mut addr = *address;
         
         for i in start..(start + steps) {
+            // Bounds check to prevent overflow issues
+            if i >= self.params.w {
+                return Err(CryptKeyperError::InvalidParameter(
+                    format!("Chain iteration {} exceeds Winternitz parameter {}", i, self.params.w)
+                ));
+            }
             addr.set_hash_address(i);
             
             // Generate key and bitmask for this iteration
@@ -119,10 +157,16 @@ impl WotsPlusOptimized {
             addr.set_key_and_mask(1);
             let bitmask = self.prf(self.pub_seed.as_ref(), &addr.to_bytes())?;
             
-            // Apply bitmask
+            // Apply bitmask with bounds checking
             let mut masked_input = input.clone();
-            for (byte, &mask_byte) in masked_input.iter_mut().zip(bitmask.iter()) {
-                *byte ^= mask_byte;
+            if bitmask.len() < masked_input.len() {
+                return Err(CryptKeyperError::InvalidParameter(
+                    "Bitmask length insufficient for masking operation".to_string()
+                ));
+            }
+            
+            for i in 0..masked_input.len() {
+                masked_input[i] ^= bitmask[i];
             }
             
             // Hash: key || masked_input
@@ -167,24 +211,16 @@ impl WotsPlusOptimized {
             }
         }
         
-        // Cache the generated keys
-        let cached_key = CachedWotsKey {
-            private_key: private_keys.clone(),
-            public_key: public_keys.clone(),
-        };
-        
-        {
-            let mut cache = self.key_cache.write();
-            for i in 0..self.params.len {
-                cache.put(i as u32, cached_key.clone());
-            }
-        }
+        // Individual chains are already cached by generate_chain_lazy
         
         Ok((private_keys, public_keys))
     }
     
     /// Sign a message with WOTS+
     pub fn sign(&self, message: &[u8]) -> Result<Vec<Vec<u8>>> {
+        #[cfg(target_arch = "wasm32")]
+        web_sys::console::log_1(&format!("WOTS+ sign called with message len: {}", message.len()).into());
+        
         if message.len() != self.hash_function.output_size() {
             return Err(CryptKeyperError::InvalidMessageLength {
                 expected: self.hash_function.output_size(),
@@ -192,8 +228,14 @@ impl WotsPlusOptimized {
             });
         }
         
+        #[cfg(target_arch = "wasm32")]
+        web_sys::console::log_1(&"Converting message to base-w".into());
+        
         // Convert message to base-w with checksum
         let base_w_msg = self.params.message_to_base_w_with_checksum(message);
+        
+        #[cfg(target_arch = "wasm32")]
+        web_sys::console::log_1(&format!("Base-w message len: {}, params.len: {}", base_w_msg.len(), self.params.len).into());
         
         if base_w_msg.len() != self.params.len {
             return Err(CryptKeyperError::InvalidParameter(
@@ -203,17 +245,36 @@ impl WotsPlusOptimized {
         
         let mut signature = Vec::with_capacity(self.params.len);
         
+        #[cfg(target_arch = "wasm32")]
+        web_sys::console::log_1(&"Starting signature component generation".into());
+        
         // Generate signature components
         for (i, &steps) in base_w_msg.iter().enumerate() {
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&format!("Chain {}: steps={}", i, steps).into());
+            
             let (private_key, _) = self.generate_chain_lazy(i as u32)?;
+            
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&format!("Chain {} private key generated, len: {}", i, private_key.len()).into());
             
             let mut addr = self.address;
             addr.set_chain_address(i as u32);
             addr.set_hash_address(0);
             
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&format!("About to call chain for index {}", i).into());
+            
             let sig_component = self.chain(private_key, 0, steps, &addr)?;
+            
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&format!("Chain {} completed, component len: {}", i, sig_component.len()).into());
+            
             signature.push(sig_component);
         }
+        
+        #[cfg(target_arch = "wasm32")]
+        web_sys::console::log_1(&format!("WOTS+ signing completed with {} components", signature.len()).into());
         
         Ok(signature)
     }
@@ -304,13 +365,13 @@ impl WotsPlusOptimized {
     
     /// Clear the key cache (useful for memory management)
     pub fn clear_cache(&self) {
-        let mut cache = self.key_cache.write();
+        let mut cache = write_lock(&self.key_cache);
         cache.clear();
     }
     
     /// Get cache statistics
     pub fn cache_stats(&self) -> (usize, usize) {
-        let cache = self.key_cache.read();
+        let cache = read_lock(&self.key_cache);
         (cache.len(), cache.cap().into())
     }
 }

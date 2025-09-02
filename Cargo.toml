@@ -47,9 +47,10 @@ parking_lot = { version = "0.12", optional = true }  # Better synchronization pr
 raw-cpuid = { version = "11.0", optional = true }  # CPU feature detection
 
 # WebAssembly support
-getrandom = { version = "0.2", features = ["js"], optional = true }
+getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen = { version = "0.2", optional = true }
 js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", features = ["console"], optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 
@@ -85,7 +86,7 @@ intel-sha = ["raw-cpuid"]
 neon = []  # ARM NEON support
 
 # Platform support
-wasm = ["wasm-bindgen", "js-sys", "getrandom", "console_error_panic_hook", "serde-wasm-bindgen"]
+wasm = ["std", "wasm-bindgen", "js-sys", "web-sys", "console_error_panic_hook", "serde-wasm-bindgen"]
 python = ["pyo3"]
 c-ffi = ["libc"]
 

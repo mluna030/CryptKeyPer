@@ -165,7 +165,11 @@ impl SecureStateManager {
         let _lock = self.file_lock.lock();
         
         let encryption_key = {
+            #[cfg(feature = "parking_lot")]
             let key_guard = self.encryption_key.read();
+            #[cfg(not(feature = "parking_lot"))]
+            let key_guard = self.encryption_key.read().unwrap();
+            
             key_guard.ok_or_else(|| CryptKeyperError::InvalidParameter(
                 "Encryption key not initialized".to_string()
             ))?
@@ -233,7 +237,11 @@ impl SecureStateManager {
         let _lock = self.file_lock.lock();
         
         let encryption_key = {
+            #[cfg(feature = "parking_lot")]
             let key_guard = self.encryption_key.read();
+            #[cfg(not(feature = "parking_lot"))]
+            let key_guard = self.encryption_key.read().unwrap();
+            
             key_guard.ok_or_else(|| CryptKeyperError::InvalidParameter(
                 "Encryption key not initialized".to_string()
             ))?

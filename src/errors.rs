@@ -17,6 +17,9 @@ pub enum CryptKeyperError {
     #[error("Invalid signature index: {0}")]
     InvalidSignatureIndex(usize),
     
+    #[error("Invalid index: {0}")]
+    InvalidIndex(String),
+    
     #[error("Hash function error: {0}")]
     HashError(String),
     
