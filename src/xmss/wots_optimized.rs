@@ -218,7 +218,7 @@ impl WotsPlusOptimized {
     
     /// Sign a message with WOTS+
     pub fn sign(&self, message: &[u8]) -> Result<Vec<Vec<u8>>> {
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
         web_sys::console::log_1(&format!("WOTS+ sign called with message len: {}", message.len()).into());
         
         if message.len() != self.hash_function.output_size() {
@@ -228,13 +228,13 @@ impl WotsPlusOptimized {
             });
         }
         
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
         web_sys::console::log_1(&"Converting message to base-w".into());
         
         // Convert message to base-w with checksum
         let base_w_msg = self.params.message_to_base_w_with_checksum(message);
         
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
         web_sys::console::log_1(&format!("Base-w message len: {}, params.len: {}", base_w_msg.len(), self.params.len).into());
         
         if base_w_msg.len() != self.params.len {
@@ -245,35 +245,35 @@ impl WotsPlusOptimized {
         
         let mut signature = Vec::with_capacity(self.params.len);
         
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
         web_sys::console::log_1(&"Starting signature component generation".into());
         
         // Generate signature components
         for (i, &steps) in base_w_msg.iter().enumerate() {
-            #[cfg(target_arch = "wasm32")]
+            #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
             web_sys::console::log_1(&format!("Chain {}: steps={}", i, steps).into());
             
             let (private_key, _) = self.generate_chain_lazy(i as u32)?;
             
-            #[cfg(target_arch = "wasm32")]
+            #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
             web_sys::console::log_1(&format!("Chain {} private key generated, len: {}", i, private_key.len()).into());
             
             let mut addr = self.address;
             addr.set_chain_address(i as u32);
             addr.set_hash_address(0);
             
-            #[cfg(target_arch = "wasm32")]
+            #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
             web_sys::console::log_1(&format!("About to call chain for index {}", i).into());
             
             let sig_component = self.chain(private_key, 0, steps, &addr)?;
             
-            #[cfg(target_arch = "wasm32")]
+            #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
             web_sys::console::log_1(&format!("Chain {} completed, component len: {}", i, sig_component.len()).into());
             
             signature.push(sig_component);
         }
         
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", feature = "web-sys"))]
         web_sys::console::log_1(&format!("WOTS+ signing completed with {} components", signature.len()).into());
         
         Ok(signature)

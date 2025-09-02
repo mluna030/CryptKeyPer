@@ -117,22 +117,91 @@ impl WasmXmssKeyPair {
     pub fn sign(&mut self, message: &Uint8Array) -> std::result::Result<WasmXmssSignature, JsValue> {
         let message_bytes = message.to_vec();
         
+        // Check remaining signatures first
+        let remaining = self.inner.remaining_signatures();
+        if remaining == 0 {
+            return Err(JsValue::from_str("No signatures remaining. This key pair is exhausted."));
+        }
+        
         // Use real XMSS signing
         let signature = self.inner.sign(&message_bytes)
             .map_err(|e| JsValue::from_str(&format!("Signing failed: {}", e)))?;
         
-        // Serialize signature to bytes (index || wots_signature || auth_path)
-        let mut signature_bytes = Vec::new();
-        signature_bytes.extend_from_slice(&signature.index.to_be_bytes());
-        
-        // Serialize WOTS+ signature
-        for chain in &signature.wots_signature {
-            signature_bytes.extend_from_slice(chain);
+        // Debug: Log signature details
+        #[cfg(feature = "wasm")]
+        {
+            web_sys::console::log_1(&format!("Signature index: {}", signature.index).into());
+            web_sys::console::log_1(&format!("WOTS+ chains: {}", signature.wots_signature.len()).into());
+            web_sys::console::log_1(&format!("Auth path nodes: {}", signature.auth_path.len()).into());
+            
+            // Check for invalid data patterns
+            if signature.wots_signature.len() == 0 {
+                return Err(JsValue::from_str("Invalid signature: empty WOTS+ signature"));
+            }
+            if signature.auth_path.len() == 0 {
+                return Err(JsValue::from_str("Invalid signature: empty authentication path"));
+            }
+            
+            // Check for repeated data (memory corruption indicator)
+            if signature.wots_signature.len() > 1 {
+                let first_chain = &signature.wots_signature[0];
+                let mut repeated_count = 0;
+                for chain in &signature.wots_signature[1..] {
+                    if chain == first_chain {
+                        repeated_count += 1;
+                    }
+                }
+                if repeated_count > signature.wots_signature.len() / 2 {
+                    web_sys::console::warn_1(&format!("WARNING: {} out of {} WOTS+ chains are identical - possible memory corruption", repeated_count + 1, signature.wots_signature.len()).into());
+                }
+            }
         }
         
-        // Serialize authentication path
-        for node in &signature.auth_path {
+        // Serialize signature to bytes (index || wots_signature || auth_path)
+        let mut signature_bytes = Vec::new();
+        
+        // Convert index to 4 bytes (not 8!) per XMSS RFC
+        let index_bytes = (signature.index as u32).to_be_bytes();
+        
+        #[cfg(feature = "wasm")]
+        {
+            web_sys::console::log_1(&format!("Index u64: {}, as u32: {}", signature.index, signature.index as u32).into());
+            web_sys::console::log_1(&format!("Index bytes: {:?}", index_bytes).into());
+        }
+        
+        signature_bytes.extend_from_slice(&index_bytes);
+        
+        // Serialize WOTS+ signature (each chain is 32 bytes)
+        for (i, chain) in signature.wots_signature.iter().enumerate() {
+            signature_bytes.extend_from_slice(chain);
+            
+            #[cfg(feature = "wasm")]
+            if i < 3 {  // Log first 3 chains
+                web_sys::console::log_1(&format!("Chain {}: first 8 bytes: {:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", 
+                    i, chain[0], chain[1], chain[2], chain[3], chain[4], chain[5], chain[6], chain[7]).into());
+            }
+        }
+        
+        #[cfg(feature = "wasm")]
+        {
+            web_sys::console::log_1(&format!("After WOTS+ serialization: {} bytes", signature_bytes.len()).into());
+        }
+        
+        // Serialize authentication path (each node is 32 bytes)
+        for (i, node) in signature.auth_path.iter().enumerate() {
             signature_bytes.extend_from_slice(node);
+            
+            #[cfg(feature = "wasm")]
+            if i < 3 {  // Log first 3 auth path nodes
+                web_sys::console::log_1(&format!("Auth node {}: first 8 bytes: {:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", 
+                    i, node[0], node[1], node[2], node[3], node[4], node[5], node[6], node[7]).into());
+            }
+        }
+        
+        #[cfg(feature = "wasm")]
+        {
+            web_sys::console::log_1(&format!("Final signature size: {} bytes", signature_bytes.len()).into());
+            web_sys::console::log_1(&format!("Expected size: {} bytes", 4 + signature.wots_signature.len() * 32 + signature.auth_path.len() * 32).into());
         }
         
         Ok(WasmXmssSignature {

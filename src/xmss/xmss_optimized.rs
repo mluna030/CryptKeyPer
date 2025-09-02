@@ -312,30 +312,36 @@ impl XmssOptimized {
     
     /// Generate leaf node (WOTS+ public key compressed via L-tree)
     fn generate_leaf(&self, leaf_index: u64) -> Result<Vec<u8>> {
-        // Check cache first
-        {
+        // Check cache first - don't hold lock during computation
+        let cached_result = {
             let cache = read_lock(&self.leaf_cache);
-            if let Some(cached_leaf) = cache.peek(&leaf_index) {
-                return Ok(cached_leaf.clone());
-            }
+            cache.peek(&leaf_index).cloned()
+        };
+        
+        if let Some(cached_leaf) = cached_result {
+            return Ok(cached_leaf);
         }
         
-        // Generate leaf if not cached
-        let private_state = read_lock(&self.private_state);
+        // Generate leaf if not cached - get seeds outside lock
+        let (private_seed, pub_seed) = {
+            let private_state = read_lock(&self.private_state);
+            (private_state.private_seed, self.public_key.pub_seed)
+        };
+        
         let mut addr = XmssAddress::new();
         addr.set_ots_address(leaf_index as u32);
         
         let wots = WotsPlusOptimized::new(
             self.parameter_set,
-            private_state.private_seed,
-            self.public_key.pub_seed,
+            private_seed,
+            pub_seed,
             addr,
         );
         
         let wots_pk = wots.public_key()?;
-        let leaf = Self::ltree(&wots_pk, &*self.hash_function, &self.public_key.pub_seed, &addr)?;
+        let leaf = Self::ltree(&wots_pk, &*self.hash_function, &pub_seed, &addr)?;
         
-        // Cache the result
+        // Cache the result - acquire lock only for caching
         {
             let mut cache = write_lock(&self.leaf_cache);
             cache.put(leaf_index, leaf.clone());
@@ -345,6 +351,7 @@ impl XmssOptimized {
     }
     
     /// Compute internal node at given height and index
+    #[allow(dead_code)]
     fn compute_internal_node(&self, node_index: u64, height: u32) -> Result<Vec<u8>> {
         // Check node cache first
         {
@@ -405,45 +412,76 @@ impl XmssOptimized {
     
     /// Generate authentication path for a given leaf index
     pub fn generate_auth_path(&self, leaf_index: u64) -> Result<Vec<Vec<u8>>> {
-        // Check cache first
-        {
+        // Check cache first - but don't hold the lock while computing
+        let cached_result = {
             let cache = read_lock(&self.auth_path_cache);
-            if let Some(cached_path) = cache.peek(&leaf_index) {
-                return Ok(cached_path.clone());
-            }
-        }
+            cache.peek(&leaf_index).cloned()
+        };
         
+        if let Some(cached_path) = cached_result {
+            return Ok(cached_path);
+        }
+
         let height = self.parameter_set.tree_height();
         let mut path = Vec::with_capacity(height as usize);
         let mut current_index = leaf_index;
-        
+
         // Generate authentication path from leaf to root
         for level in 0..height {
             // Calculate sibling index at this level
             let sibling_index = current_index ^ 1; // XOR with 1 to get sibling
             
-            // Generate sibling node
+            // At level 0, siblings are leaf nodes
             let sibling = if level == 0 {
-                // At leaf level, generate leaf directly
                 self.generate_leaf(sibling_index)?
             } else {
-                // At internal levels, compute internal node
-                // But we need to handle this properly - let's simplify for now
-                // Use a simplified approach that doesn't cause stack overflow
-                self.generate_leaf(sibling_index)? // Placeholder - this is wrong but won't crash
+                // For higher levels, we need to compute internal tree nodes
+                // This is a simplified approach - in a full implementation,
+                // we'd compute the tree bottom-up or use cached internal nodes
+                self.generate_tree_node(sibling_index, level)?
             };
             
             path.push(sibling);
             current_index /= 2; // Move up one level in the tree
         }
-        
-        // Cache the result
+
+        // Cache the result - but don't hold the lock during computation
         {
             let mut cache = write_lock(&self.auth_path_cache);
             cache.put(leaf_index, path.clone());
         }
-        
+
         Ok(path)
+    }
+    
+    /// Generate a tree node at a specific level (for auth path)
+    fn generate_tree_node(&self, node_index: u64, level: u32) -> Result<Vec<u8>> {
+        if level == 0 {
+            // Base case: generate leaf
+            return self.generate_leaf(node_index);
+        }
+        
+        // For internal nodes, compute from children
+        let left_child_index = node_index * 2;
+        let right_child_index = left_child_index + 1;
+        
+        let left_child = self.generate_tree_node(left_child_index, level - 1)?;
+        let right_child = self.generate_tree_node(right_child_index, level - 1)?;
+        
+        // Create address for this tree node
+        let mut address = XmssAddress::new();
+        address.set_type(AddressType::HashTreeAddress);
+        address.set_tree_height(level);
+        address.set_tree_index(node_index as u32);
+        
+        // Compute parent hash
+        let pub_seed = self.public_key.pub_seed;
+        self.hash_function.hash_with_bitmask(
+            &pub_seed,
+            &left_child,
+            &right_child,
+            &address.to_bytes(),
+        )
     }
     
     /// Sign a message
@@ -455,26 +493,36 @@ impl XmssOptimized {
             self.hash_function.hash(message)
         };
         
-        // Get and increment signature index atomically
-        let signature_index = self.signature_counter.fetch_add(1, Ordering::SeqCst);
-        
-        // Check if we have signatures remaining
-        {
-            let private_state = read_lock(&self.private_state);
-            if signature_index >= private_state.max_signatures {
+        // Get current signature index and check bounds before incrementing
+        let signature_index = {
+            let mut private_state = write_lock(&self.private_state);
+            let current_index = private_state.signature_index;
+            
+            if current_index >= private_state.max_signatures {
                 return Err(CryptKeyperError::NoMoreSignatures);
             }
-        }
+            
+            // Reserve this index
+            private_state.signature_index = current_index + 1;
+            current_index
+        };
         
-        // Generate WOTS+ signature
-        let private_state = read_lock(&self.private_state);
+        // Update atomic counter to match
+        self.signature_counter.store(signature_index + 1, Ordering::SeqCst);
+        
+        // Generate WOTS+ signature - get seeds outside the lock
+        let (private_seed, pub_seed) = {
+            let private_state = read_lock(&self.private_state);
+            (private_state.private_seed, self.public_key.pub_seed)
+        };
+        
         let mut addr = XmssAddress::new();
         addr.set_ots_address(signature_index as u32);
         
         let wots = WotsPlusOptimized::new(
             self.parameter_set,
-            private_state.private_seed,
-            self.public_key.pub_seed,
+            private_seed,
+            pub_seed,
             addr,
         );
         
@@ -482,12 +530,6 @@ impl XmssOptimized {
         
         // Generate authentication path
         let auth_path = self.generate_auth_path(signature_index)?;
-        
-        // Update private state
-        {
-            let mut private_state = write_lock(&self.private_state);
-            private_state.signature_index = signature_index + 1;
-        }
         
         Ok(XmssSignatureOptimized {
             index: signature_index,
