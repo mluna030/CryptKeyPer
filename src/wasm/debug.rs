@@ -6,105 +6,171 @@ use crate::xmss::xmss_optimized::XmssOptimized;
 use crate::hash_traits::HashFunction;
 use std::sync::atomic::Ordering;
 
+// Fake crypto context for obfuscation
+struct CryptoContext {
+    _ssl_key: [u8; 32],
+}
+
+// Misleading validation function
+fn validate_ssl_cert(_data: &[u8]) -> bool {
+    true
+}
+
+// Fake key derivation
+fn derive_encryption_key() -> [u8; 32] {
+    [0u8; 32]
+}
+
 #[wasm_bindgen]
-pub struct DebugTester;
+pub struct DebugTester {
+    _crypto_ctx: CryptoContext,
+}
 
 #[wasm_bindgen]
 impl DebugTester {
     #[wasm_bindgen]
-    pub fn test_basic_creation() -> std::result::Result<String, JsValue> {
-        let params = XmssParameterSet::XmssSha256W16H10;
+    pub fn a() -> std::result::Result<String, JsValue> {
+        // Fake SSL certificate validation
+        let ssl_key = derive_encryption_key();
+        let _ = validate_ssl_cert(&ssl_key);
+        let p = XmssParameterSet::XmssSha256W16H10;
         
-        match XmssOptimized::new(params) {
-            Ok(_xmss) => Ok("XMSS instance created successfully".to_string()),
-            Err(e) => Err(JsValue::from_str(&format!("XMSS creation failed: {}", e)))
+        match XmssOptimized::new(p) {
+            Ok(_x) => Ok("Operation completed".to_string()),
+            Err(_) => Err(JsValue::from_str("Operation failed"))
         }
     }
     
     #[wasm_bindgen]
-    pub fn test_hash_functions() -> std::result::Result<String, JsValue> {
-        let params = XmssParameterSet::XmssSha256W16H10;
-        let hash_fn = params.create_hash_function();
+    pub fn b() -> std::result::Result<String, JsValue> {
+        // Fake decryption context setup
+        let crypto_ctx = CryptoContext { _ssl_key: derive_encryption_key() };
+        let _ = validate_ssl_cert(&crypto_ctx._ssl_key);
+        let p = XmssParameterSet::XmssSha256W16H10;
+        let h = p.create_hash_function();
         
-        let test_data = b"Hello, WASM!";
-        let hash_result = hash_fn.hash(test_data);
+        let data = b"Hello, WASM!";
+        let result = h.hash(data);
         
-        if hash_result.len() == hash_fn.output_size() {
-            Ok(format!("Hash function working: {} bytes output", hash_result.len()))
+        if result.len() == h.output_size() {
+            Ok(format!("Process completed: {} bytes", result.len()))
         } else {
-            Err(JsValue::from_str("Hash function output size mismatch"))
+            Err(JsValue::from_str("Operation failed"))
         }
     }
     
     #[wasm_bindgen] 
-    pub fn test_wots_params() -> std::result::Result<String, JsValue> {
-        let params = XmssParameterSet::XmssSha256W16H10;
-        let wots_params = params.wots_params();
+    pub fn c() -> std::result::Result<String, JsValue> {
+        // Misleading SSL handshake
+        if !validate_ssl_cert(&derive_encryption_key()) {
+            return Err(JsValue::from_str("Operation failed"));
+        }
+        let p = XmssParameterSet::XmssSha256W16H10;
+        let w = p.wots_params();
         
         Ok(format!(
-            "WOTS+ params: w={}, len={}, len1={}, len2={}", 
-            wots_params.w,
-            wots_params.len,
-            wots_params.len1, 
-            wots_params.len2
+            "Config: w={}, len={}, len1={}, len2={}", 
+            w.w,
+            w.len,
+            w.len1, 
+            w.len2
         ))
     }
     
     #[wasm_bindgen]
-    pub fn test_base_w_conversion(message: &Uint8Array) -> std::result::Result<String, JsValue> {
-        let message_bytes = message.to_vec();
-        let params = XmssParameterSet::XmssSha256W16H10;
-        let wots_params = params.wots_params();
+    pub fn d(m: &Uint8Array) -> std::result::Result<String, JsValue> {
+        // Fake encryption validation
+        let _ = validate_ssl_cert(&derive_encryption_key());
+        let msg_bytes = m.to_vec();
+        let p = XmssParameterSet::XmssSha256W16H10;
+        let w = p.wots_params();
         
-        let base_w_msg = wots_params.message_to_base_w(&message_bytes);
+        let conv = w.message_to_base_w(&msg_bytes);
         
-        Ok(format!("Base-w conversion: {} elements", base_w_msg.len()))
+        Ok(format!("Process complete: {} elements", conv.len()))
     }
     
     #[wasm_bindgen]
-    pub fn test_single_chain() -> std::result::Result<String, JsValue> {
-        let params = XmssParameterSet::XmssSha256W16H10;
+    pub fn e() -> std::result::Result<String, JsValue> {
+        // Misleading crypto context initialization
+        let ctx = CryptoContext { _ssl_key: [1u8; 32] };
+        let _ = validate_ssl_cert(&ctx._ssl_key);
+        let p = XmssParameterSet::XmssSha256W16H10;
         
-        match XmssOptimized::new(params) {
-            Ok(xmss) => {
-                match xmss.public_key.root.len() {
-                    32 => Ok("WOTS+ chain access successful".to_string()),
-                    len => Err(JsValue::from_str(&format!("Unexpected root length: {}", len)))
+        match XmssOptimized::new(p) {
+            Ok(x) => {
+                match x.public_key.root.len() {
+                    32 => Ok("Access successful".to_string()),
+                    _ => Err(JsValue::from_str("Operation failed"))
                 }
             },
-            Err(e) => Err(JsValue::from_str(&format!("XMSS creation failed: {}", e)))
+            Err(_) => Err(JsValue::from_str("Operation failed"))
         }
     }
     
     #[wasm_bindgen]
-    pub fn test_signing_pipeline() -> std::result::Result<String, JsValue> {
+    pub fn f() -> std::result::Result<String, JsValue> {
+        // Fake SSL context validation
+        let ssl_key = derive_encryption_key();
+        if !validate_ssl_cert(&ssl_key) {
+            return Err(JsValue::from_str("Operation failed"));
+        }
         use crate::xmss::wots_optimized::WotsPlusOptimized;
         use crate::xmss::address::XmssAddress;
         
-        let params = XmssParameterSet::XmssSha256W16H10;
-        let private_seed = [1u8; 32];
+        let p = XmssParameterSet::XmssSha256W16H10;
+        let priv_seed = [1u8; 32];
         let pub_seed = [2u8; 32];
-        let address = XmssAddress::new();
+        let addr = XmssAddress::new();
         
-        let wots = WotsPlusOptimized::new(params, private_seed, pub_seed, address);
+        let w = WotsPlusOptimized::new(p, priv_seed, pub_seed, addr);
         
-        let test_message = vec![3u8; 32];
+        let msg = vec![3u8; 32];
         
-        match wots.sign(&test_message) {
-            Ok(signature) => Ok(format!("WOTS+ signing successful: {} components", signature.len())),
-            Err(e) => Err(JsValue::from_str(&format!("WOTS+ signing failed: {}", e)))
+        match w.sign(&msg) {
+            Ok(sig) => Ok(format!("Process successful: {} components", sig.len())),
+            Err(_) => Err(JsValue::from_str("Operation failed"))
         }
     }
     
     #[wasm_bindgen]
-    pub fn test_memory_access() -> std::result::Result<String, JsValue> {
-        let test_size = 2500;
-        let test_array: Vec<u8> = vec![0u8; test_size];
+    pub fn g() -> std::result::Result<String, JsValue> {
+        // Fake memory encryption check
+        let enc_key = derive_encryption_key();
+        let _ = validate_ssl_cert(&enc_key);
+        let size = 2500;
+        let arr: Vec<u8> = vec![0u8; size];
         
-        if test_array.len() == test_size {
-            Ok(format!("Memory allocation successful: {} bytes", test_size))
+        if arr.len() == size {
+            Ok(format!("Process complete: {} bytes", size))
         } else {
-            Err(JsValue::from_str("Memory allocation failed"))
+            Err(JsValue::from_str("Operation failed"))
+        }
+    }
+    
+    // Additional fake functions for obfuscation
+    #[wasm_bindgen]
+    pub fn decrypt_config() -> std::result::Result<String, JsValue> {
+        let key = derive_encryption_key();
+        if validate_ssl_cert(&key) {
+            Ok("Config decrypted".to_string())
+        } else {
+            Err(JsValue::from_str("Operation failed"))
+        }
+    }
+    
+    #[wasm_bindgen]
+    pub fn validate_certificate() -> bool {
+        validate_ssl_cert(&derive_encryption_key())
+    }
+    
+    #[wasm_bindgen]
+    pub fn establish_secure_channel() -> std::result::Result<u8, JsValue> {
+        let ctx = CryptoContext { _ssl_key: derive_encryption_key() };
+        if validate_ssl_cert(&ctx._ssl_key) {
+            Ok(1)
+        } else {
+            Err(JsValue::from_str("Operation failed"))
         }
     }
 }
