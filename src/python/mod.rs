@@ -149,9 +149,16 @@ impl PyXmssKeyPair {
     /// Example:
     ///     >>> keypair.save_state("my_xmss_key.enc", "secure_password_123")
     fn save_state(&self, filename: &str, password: &str) -> PyResult<()> {
-        // In a real implementation, this would use the SecureStateManager
-        // For now, just demonstrate the API
-        Err(PyRuntimeError::new_err("State saving not yet implemented"))
+        use crate::state_management::SecureStateManager;
+        use std::path::Path;
+        
+        let state_manager = SecureStateManager::new(Path::new(filename))
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to create state manager: {}", e)))?;
+        
+        state_manager.save_encrypted_state(&self.inner, password)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to save state: {}", e)))?;
+        
+        Ok(())
     }
     
     /// Load key pair state from a file
@@ -164,8 +171,16 @@ impl PyXmssKeyPair {
     ///     XmssKeyPair: Restored key pair
     #[staticmethod]
     fn load_state(filename: &str, password: &str) -> PyResult<Self> {
-        // In a real implementation, this would use the SecureStateManager
-        Err(PyRuntimeError::new_err("State loading not yet implemented"))
+        use crate::state_management::SecureStateManager;
+        use std::path::Path;
+        
+        let state_manager = SecureStateManager::new(Path::new(filename))
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to create state manager: {}", e)))?;
+        
+        let xmss_instance = state_manager.load_encrypted_state(password)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to load state: {}", e)))?;
+        
+        Ok(Self { inner: xmss_instance })
     }
     
     /// Python string representation

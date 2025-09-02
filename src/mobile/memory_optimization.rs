@@ -182,10 +182,30 @@ where
         }
     }
     
-    fn estimate_memory_size(&self, _value: &V) -> usize {
-        // In a real implementation, this would calculate actual memory usage
-        // For now, use a reasonable estimate
-        std::mem::size_of::<V>() + 64 // Base overhead
+    fn estimate_memory_size(&self, value: &V) -> usize {
+        use std::mem;
+        
+        // Base size of the type
+        let base_size = mem::size_of::<V>();
+        
+        // Account for heap allocations based on type characteristics
+        let heap_estimate = if base_size > 64 {
+            // Large types likely contain heap data
+            base_size * 2
+        } else if base_size > 8 && base_size <= 64 {
+            // Medium types may have some heap data
+            base_size + 128
+        } else {
+            // Small types are likely stack-only
+            0
+        };
+        
+        // Add overhead for cache entry metadata, alignment, and fragmentation
+        let metadata_overhead = mem::size_of::<CacheEntry<V>>() - base_size;
+        let alignment_overhead = (base_size + 7) & !7; // Round to 8-byte boundary
+        let fragmentation_overhead = base_size / 8; // Estimate 12.5% fragmentation
+        
+        base_size + heap_estimate + metadata_overhead + alignment_overhead + fragmentation_overhead
     }
 }
 

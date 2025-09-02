@@ -175,16 +175,31 @@ impl VerificationContext {
         let mut violations = 0;
         
         // Simulate multiple signature attempts with same key
-        for _ in 0..test_cases {
-            // This would test that the implementation properly tracks key usage
-            // and prevents reuse of WOTS+ keys
+        for i in 0..test_cases {
+            // Test WOTS+ key usage tracking
+            let test_xmss = match crate::xmss::xmss_optimized::XmssOptimized::new(self.parameter_set) {
+                Ok(xmss) => xmss,
+                Err(_) => {
+                    violations += 1;
+                    continue;
+                }
+            };
             
-            // For now, assume the property holds
-            // In a real implementation, this would involve:
-            // 1. Creating XMSS instance
-            // 2. Signing message
-            // 3. Attempting to sign with same WOTS+ key
-            // 4. Verifying that the second attempt fails or uses new key
+            let test_message = format!("test message {}", i).into_bytes();
+            
+            // Sign message - this should succeed
+            let initial_remaining = test_xmss.remaining_signatures();
+            match test_xmss.sign(&test_message) {
+                Ok(_) => {
+                    let final_remaining = test_xmss.remaining_signatures();
+                    
+                    // Verify that signature count decremented
+                    if final_remaining != initial_remaining - 1 {
+                        violations += 1;
+                    }
+                }
+                Err(_) => violations += 1,
+            }
         }
         
         Ok(PropertyResult {

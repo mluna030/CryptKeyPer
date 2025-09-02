@@ -340,15 +340,73 @@ fn detect_core_count() -> u8 {
 }
 
 fn detect_memory_size() -> u32 {
-    // In a real implementation, this would query system memory
-    // For now, return a reasonable default
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
+            for line in meminfo.lines() {
+                if line.starts_with("MemTotal:") {
+                    if let Some(kb_str) = line.split_whitespace().nth(1) {
+                        if let Ok(kb) = kb_str.parse::<u32>() {
+                            return kb / 1024; // Convert KB to MB
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        if let Ok(output) = Command::new("sysctl").args(&["-n", "hw.memsize"]).output() {
+            if let Ok(bytes_str) = String::from_utf8(output.stdout) {
+                if let Ok(bytes) = bytes_str.trim().parse::<u64>() {
+                    return (bytes / 1024 / 1024) as u32; // Convert bytes to MB
+                }
+            }
+        }
+    }
+    
+    // Default fallback for unknown platforms or WASM
     2048 // 2GB
 }
 
 fn detect_battery_power() -> bool {
-    // In a real implementation, this would check if device is battery-powered
-    // Mobile platforms are typically battery-powered
-    true
+    #[cfg(target_os = "linux")]
+    {
+        // Check /sys/class/power_supply for battery information
+        if let Ok(entries) = std::fs::read_dir("/sys/class/power_supply") {
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.starts_with("BAT") || name.contains("battery") {
+                        return true;
+                    }
+                }
+            }
+        }
+        // Also check for common mobile/ARM indicators
+        if std::path::Path::new("/proc/device-tree").exists() {
+            return true; // Often indicates embedded/mobile Linux
+        }
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        if let Ok(output) = Command::new("pmset").args(&["-g", "batt"]).output() {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            return output_str.contains("Battery") || output_str.contains("InternalBattery");
+        }
+    }
+    
+    #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
+    {
+        // ARM architectures are often mobile/embedded
+        return true;
+    }
+    
+    // Default to false for desktop/server environments
+    false
 }
 
 fn calculate_battery_impact(
