@@ -1,0 +1,34 @@
+{
+  "name": "cryptkeyper",
+  "type": "module",
+  "collaborators": [
+    "Michael Luna <michael.angelo.luna1@gmail.com>"
+  ],
+  "description": "RFC 8391 compliant XMSS (eXtended Merkle Signature Scheme) post-quantum cryptography implementation",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mluna030/CryptKeyPer"
+  },
+  "files": [
+    "cryptkeyper_bg.wasm",
+    "cryptkeyper.js",
+    "cryptkeyper.d.ts",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "main": "cryptkeyper.js",
+  "homepage": "https://github.com/mluna030/CryptKeyPer",
+  "types": "cryptkeyper.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
+  "keywords": [
+    "cryptography",
+    "post-quantum",
+    "xmss",
+    "signatures",
+    "quantum-resistant"
+  ]
+}
