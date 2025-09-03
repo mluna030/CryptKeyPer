@@ -114,6 +114,9 @@ overflow-checks = false # Remove runtime checks for production
 [profile.dev]
 debug = false          # No debug info in dev builds
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [workspace]
 members = [
     ".",
