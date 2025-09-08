@@ -1,4 +1,14 @@
+
+<p align="center">
+    <img src="logo.png" alt="CRYPTKEYPER Logo" />
+</p>
+
 # CryptKeyPer
+
+
+<div align="center">
+<sub><em>CRYPTKEYPER: Quantum-Resistant Key Management</em></sub>
+</div>
 
 CryptKeyPer is a Rust-based library for post-quantum cryptographic key management, featuring a complete implementation of the **eXtended Merkle Signature Scheme (XMSS)** as specified in [RFC 8391](https://tools.ietf.org/rfc/rfc8391.txt). The library focuses on deterministic random bit generation (HMAC_DRBG), secure seed handling, and quantum-resistant digital signatures.
 
